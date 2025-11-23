@@ -1,17 +1,18 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import Dashboard from './pages/Dashboard';
+import Login from './components/Login';
 
 // Custom theme with Indian cultural colors
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#FF6B35', // Saffron
-      light: '#FF8A5B',
-      dark: '#E65100',
+      main: '#880E4F', // Maroon/Burgundy
+      light: '#BC477B',
+      dark: '#560027',
       contrastText: '#fff',
     },
     secondary: {
@@ -95,11 +96,41 @@ const theme = createTheme({
 });
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const authData = localStorage.getItem('homaBookingAuth');
+    if (authData) {
+      try {
+        const parsed = JSON.parse(authData);
+        if (parsed.isLoggedIn) {
+          setIsAuthenticated(true);
+        }
+      } catch (e) {
+        localStorage.removeItem('homaBookingAuth');
+      }
+    }
+  }, []);
+
+  const handleLogin = (status) => {
+    setIsAuthenticated(status);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('homaBookingAuth');
+    setIsAuthenticated(false);
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <LocalizationProvider dateAdapter={AdapterDateFns}>
         <CssBaseline />
-        <Dashboard />
+        {isAuthenticated ? (
+          <Dashboard onLogout={handleLogout} />
+        ) : (
+          <Login onLogin={handleLogin} />
+        )}
       </LocalizationProvider>
     </ThemeProvider>
   );

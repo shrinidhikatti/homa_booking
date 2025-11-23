@@ -19,7 +19,10 @@ import {
   DialogContent,
   DialogActions,
   CircularProgress,
-  Fab
+  Fab,
+  Switch,
+  FormControlLabel,
+  Tooltip
 } from '@mui/material';
 import {
   Add,
@@ -28,8 +31,8 @@ import {
   Assessment,
   FileDownload,
   Refresh,
-  Settings,
-  Notifications
+  Notifications,
+  Logout
 } from '@mui/icons-material';
 
 import BookingCalendar from '../components/BookingCalendar';
@@ -59,7 +62,7 @@ import {
 } from '../services/notificationService';
 import { DEFAULT_PUROHITS } from '../config/constants';
 
-const Dashboard = () => {
+const Dashboard = ({ onLogout }) => {
   const [currentTab, setCurrentTab] = useState(0);
   const [bookings, setBookings] = useState([]);
   const [purohits, setPurohits] = useState(DEFAULT_PUROHITS);
@@ -71,6 +74,7 @@ const Dashboard = () => {
   const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, bookingId: null });
+  const [showPanchanga, setShowPanchanga] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -227,6 +231,11 @@ const Dashboard = () => {
           <IconButton color="inherit" onClick={handleExportMenuOpen} title="Export">
             <FileDownload />
           </IconButton>
+          <Tooltip title="Logout">
+            <IconButton color="inherit" onClick={onLogout}>
+              <Logout />
+            </IconButton>
+          </Tooltip>
         </Toolbar>
       </AppBar>
 
@@ -243,12 +252,48 @@ const Dashboard = () => {
       {/* Main Content */}
       <Container maxWidth="xl" sx={{ mt: 2, mb: 4 }}>
         {/* Tabs */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-          <Tabs value={currentTab} onChange={handleTabChange}>
+        <Box sx={{
+          borderBottom: 1,
+          borderColor: 'divider',
+          mb: 2,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: { xs: 'wrap', sm: 'nowrap' }
+        }}>
+          <Tabs
+            value={currentTab}
+            onChange={handleTabChange}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              minHeight: { xs: 48, sm: 48 },
+              '& .MuiTab-root': {
+                minWidth: { xs: 'auto', sm: 120 },
+                px: { xs: 1, sm: 2 }
+              }
+            }}
+          >
             <Tab icon={<CalendarMonth />} label="Calendar" iconPosition="start" />
             <Tab icon={<List />} label="Bookings" iconPosition="start" />
             <Tab icon={<Assessment />} label="Reports" iconPosition="start" />
           </Tabs>
+          {currentTab === 0 && (
+            <Tooltip title="Show Tithi, Nakshatra, Vāra details on calendar">
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={showPanchanga}
+                    onChange={(e) => setShowPanchanga(e.target.checked)}
+                    color="primary"
+                    size="small"
+                  />
+                }
+                label={<Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>Panchanga</Typography>}
+                sx={{ mr: { xs: 1, sm: 2 }, ml: { xs: 'auto', sm: 0 } }}
+              />
+            </Tooltip>
+          )}
         </Box>
 
         {/* Tab Panels */}
@@ -259,6 +304,7 @@ const Dashboard = () => {
                 bookings={bookings}
                 onDateSelect={handleDateSelect}
                 selectedDate={selectedDate}
+                showPanchanga={showPanchanga}
               />
             </Grid>
           </Grid>
