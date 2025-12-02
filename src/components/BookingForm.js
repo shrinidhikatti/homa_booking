@@ -53,7 +53,6 @@ const BookingForm = ({ open, onClose, onSave, booking, purohits, existingBooking
     purohitName: '',
     status: 'pending',
     notes: '',
-    gotra: '',
     sankalpaType: '', // Dropdown selection
     sankalpa: '', // Free text field for additional details
     venueAddress: '',
@@ -217,11 +216,11 @@ const BookingForm = ({ open, onClose, onSave, booking, purohits, existingBooking
       newErrors.slot = 'Please select a time slot';
     }
 
-    if (!formData.totalAmount || formData.totalAmount <= 0) {
+    if (!formData.totalAmount || parseFloat(formData.totalAmount) <= 0) {
       newErrors.totalAmount = 'Please enter valid amount';
     }
 
-    if (formData.advanceAmount > formData.totalAmount) {
+    if (parseFloat(formData.advanceAmount) > parseFloat(formData.totalAmount)) {
       newErrors.advanceAmount = 'Advance cannot exceed total amount';
     }
 
@@ -549,15 +548,7 @@ const BookingForm = ({ open, onClose, onSave, booking, purohits, existingBooking
               </Grid>
 
               {/* Additional Information */}
-              <Grid item xs={12} sm={4}>
-                <TextField
-                  fullWidth
-                  label="Gotra"
-                  value={formData.gotra}
-                  onChange={handleChange('gotra')}
-                />
-              </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
                   <InputLabel>Sankalpa Type</InputLabel>
                   <Select
@@ -576,7 +567,7 @@ const BookingForm = ({ open, onClose, onSave, booking, purohits, existingBooking
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   label="Sankalpa Details"

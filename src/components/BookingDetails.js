@@ -95,7 +95,6 @@ Total: ${formatCurrency(booking.totalAmount)}
 Advance: ${formatCurrency(booking.advanceAmount)}
 Balance: ${formatCurrency(booking.remainingAmount)}
 ` : ''}
-${booking.gotra ? `Gotra: ${booking.gotra}` : ''}
 ${booking.sankalpaType ? `Sankalpa Type: ${booking.sankalpaType}` : ''}
 ${booking.sankalpa ? `Sankalpa Details: ${booking.sankalpa}` : ''}
 ${booking.venueAddress ? `Venue: ${booking.venueAddress}` : ''}
@@ -189,7 +188,6 @@ ${booking.notes ? `Notes: ${booking.notes}` : ''}
         <Typography variant="subtitle2" color="primary" gutterBottom>
           Additional Information
         </Typography>
-        <DetailRow label="Gotra" value={booking.gotra} />
         {booking.sankalpaType && <DetailRow label="Sankalpa Type" value={booking.sankalpaType} />}
         {booking.sankalpa && <DetailRow label="Sankalpa Details" value={booking.sankalpa} />}
         <DetailRow label="Venue" value={booking.venueAddress} />

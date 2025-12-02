@@ -62,10 +62,12 @@ import {
 } from '../services/notificationService';
 import { DEFAULT_PUROHITS, USER_ROLES } from '../config/constants';
 
-const Dashboard = ({ onLogout, userRole }) => {
+const Dashboard = ({ onLogout, userRole, purohitId }) => {
   const isBhadaji = userRole === USER_ROLES.BHADAJI;
+  const isPurohit = userRole === USER_ROLES.PUROHIT;
   const [currentTab, setCurrentTab] = useState(0);
   const [bookings, setBookings] = useState([]);
+  const [allBookings, setAllBookings] = useState([]); // Store all bookings before filtering
   const [purohits, setPurohits] = useState(DEFAULT_PUROHITS);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -88,7 +90,18 @@ const Dashboard = ({ onLogout, userRole }) => {
         getAllBookings(),
         getAllPurohits()
       ]);
-      setBookings(bookingsData);
+
+      // Store all bookings
+      setAllBookings(bookingsData);
+
+      // Filter bookings for purohit users
+      if (isPurohit && purohitId) {
+        const filteredBookings = bookingsData.filter(booking => booking.purohitId === purohitId);
+        setBookings(filteredBookings);
+      } else {
+        setBookings(bookingsData);
+      }
+
       if (purohitsData.length > 0) {
         setPurohits(purohitsData);
       }
@@ -221,19 +234,21 @@ const Dashboard = ({ onLogout, userRole }) => {
       <AppBar position="static">
         <Toolbar>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Homa & Havana Booking System {isBhadaji && '(Bhadaji View)'}
+            Homa & Havana Booking System {isBhadaji && '(Bhadaji View)'} {isPurohit && '(Purohit View)'}
           </Typography>
           <IconButton color="inherit" onClick={loadData} title="Refresh">
             <Refresh />
           </IconButton>
-          {!isBhadaji && (
+          {!isBhadaji && !isPurohit && (
             <IconButton color="inherit" onClick={handleSendReminders} title="Send Reminders">
               <Notifications />
             </IconButton>
           )}
-          <IconButton color="inherit" onClick={handleExportMenuOpen} title="Export">
-            <FileDownload />
-          </IconButton>
+          {!isPurohit && (
+            <IconButton color="inherit" onClick={handleExportMenuOpen} title="Export">
+              <FileDownload />
+            </IconButton>
+          )}
           <Tooltip title="Logout">
             <IconButton color="inherit" onClick={onLogout}>
               <Logout />
@@ -330,7 +345,7 @@ const Dashboard = ({ onLogout, userRole }) => {
       </Container>
 
       {/* Floating Action Button - Only for Admin */}
-      {!isBhadaji && (
+      {!isBhadaji && !isPurohit && (
         <Fab
           color="primary"
           aria-label="add"
@@ -342,7 +357,7 @@ const Dashboard = ({ onLogout, userRole }) => {
       )}
 
       {/* Booking Form Dialog - Only for Admin */}
-      {!isBhadaji && (
+      {!isBhadaji && !isPurohit && (
         <BookingForm
           open={formOpen}
           onClose={() => {

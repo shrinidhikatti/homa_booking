@@ -77,9 +77,9 @@ export const formatTimeSlot = (startTime, endTime) => {
 
 // Default purohits list (can be managed from admin)
 export const DEFAULT_PUROHITS = [
-  { id: 'purohit1', name: 'Pandit Sharma', phone: '9876543210' },
-  { id: 'purohit2', name: 'Pandit Iyer', phone: '9876543211' },
-  { id: 'purohit3', name: 'Pandit Bhat', phone: '9876543212' }
+  { id: 'purohit1', name: 'Vikas Joshi', phone: '9876543210' },
+  { id: 'purohit2', name: 'Nagaraj Hiremath', phone: '9876543211' },
+  { id: 'purohit3', name: 'Dilip Kulkarni', phone: '9876543212' }
 ];
 
 // Date range for bookings
@@ -89,5 +89,6 @@ export const BOOKING_END_DATE = new Date('2026-12-31');
 // User roles
 export const USER_ROLES = {
   ADMIN: 'admin',
-  BHADAJI: 'bhadaji' // Restricted access - can't see phone/amount
+  BHADAJI: 'bhadaji', // Restricted access - can't see phone/amount
+  PUROHIT: 'purohit' // Purohit-specific view - only see assigned bookings
 };

@@ -28,7 +28,8 @@ const Login = ({ onLogin }) => {
   // User credentials with roles
   const USERS = [
     { username: 'vishal', password: 'vishal@1990', role: USER_ROLES.ADMIN, name: 'Admin' },
-    { username: 'bhadaji', password: 'bhadaji@123', role: USER_ROLES.BHADAJI, name: 'Bhadaji' }
+    { username: 'bhadaji', password: 'bhadaji@123', role: USER_ROLES.BHADAJI, name: 'Bhadaji' },
+    { username: 'vikas', password: 'vikas@123', role: USER_ROLES.PUROHIT, name: 'Vikas Joshi', purohitId: 'purohit1' }
   ];
 
   const handleSubmit = (e) => {
@@ -42,14 +43,21 @@ const Login = ({ onLogin }) => {
 
       if (user) {
         // Store login state with role in localStorage
-        localStorage.setItem('homaBookingAuth', JSON.stringify({
+        const authData = {
           isLoggedIn: true,
           username: user.username,
           role: user.role,
           name: user.name,
           loginTime: new Date().toISOString()
-        }));
-        onLogin(true, user.role);
+        };
+
+        // Add purohitId for purohit users
+        if (user.purohitId) {
+          authData.purohitId = user.purohitId;
+        }
+
+        localStorage.setItem('homaBookingAuth', JSON.stringify(authData));
+        onLogin(true, user.role, user.purohitId);
       } else {
         setError('Invalid username or password');
       }
