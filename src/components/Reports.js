@@ -32,8 +32,10 @@ import {
   Legend
 } from 'recharts';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
+import { USER_ROLES } from '../config/constants';
 
-const Reports = ({ bookings, purohits }) => {
+const Reports = ({ bookings, purohits, userRole }) => {
+  const isBhadaji = userRole === USER_ROLES.BHADAJI;
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1);
@@ -190,7 +192,7 @@ const Reports = ({ bookings, purohits }) => {
 
       {/* Summary Cards */}
       <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={6} sm={4} md={2}>
+        <Grid item xs={6} sm={4} md={isBhadaji ? 4 : 2}>
           <Card sx={{ bgcolor: 'primary.light' }}>
             <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
               <Typography variant="caption" color="primary.contrastText">
@@ -202,7 +204,7 @@ const Reports = ({ bookings, purohits }) => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={6} sm={4} md={2}>
+        <Grid item xs={6} sm={4} md={isBhadaji ? 4 : 2}>
           <Card sx={{ bgcolor: 'success.light' }}>
             <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
               <Typography variant="caption" color="success.contrastText">
@@ -214,54 +216,70 @@ const Reports = ({ bookings, purohits }) => {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={6} sm={4} md={2}>
-          <Card sx={{ bgcolor: 'info.light' }}>
-            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-              <Typography variant="caption" color="info.contrastText">
-                Total Amount
-              </Typography>
-              <Typography variant="h6" color="info.contrastText">
-                {formatCurrency(stats.totalAmount)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={6} sm={4} md={2}>
+        <Grid item xs={6} sm={4} md={isBhadaji ? 4 : 2}>
           <Card sx={{ bgcolor: 'warning.light' }}>
             <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
               <Typography variant="caption" color="warning.contrastText">
-                Advance Received
+                Booked
               </Typography>
-              <Typography variant="h6" color="warning.contrastText">
-                {formatCurrency(stats.totalAdvance)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={6} sm={4} md={2}>
-          <Card sx={{ bgcolor: 'error.light' }}>
-            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-              <Typography variant="caption" color="error.contrastText">
-                Balance Pending
-              </Typography>
-              <Typography variant="h6" color="error.contrastText">
-                {formatCurrency(stats.totalRemaining)}
+              <Typography variant="h4" color="warning.contrastText">
+                {stats.booked}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={6} sm={4} md={2}>
-          <Card sx={{ bgcolor: 'grey.200' }}>
-            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
-              <Typography variant="caption" color="text.secondary">
-                Completed Value
-              </Typography>
-              <Typography variant="h6">
-                {formatCurrency(stats.completedAmount)}
-              </Typography>
-            </CardContent>
-          </Card>
-        </Grid>
+        {!isBhadaji && (
+          <>
+            <Grid item xs={6} sm={4} md={2}>
+              <Card sx={{ bgcolor: 'info.light' }}>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Typography variant="caption" color="info.contrastText">
+                    Total Amount
+                  </Typography>
+                  <Typography variant="h6" color="info.contrastText">
+                    {formatCurrency(stats.totalAmount)}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={4} md={2}>
+              <Card sx={{ bgcolor: 'warning.light' }}>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Typography variant="caption" color="warning.contrastText">
+                    Advance Received
+                  </Typography>
+                  <Typography variant="h6" color="warning.contrastText">
+                    {formatCurrency(stats.totalAdvance)}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={4} md={2}>
+              <Card sx={{ bgcolor: 'error.light' }}>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Typography variant="caption" color="error.contrastText">
+                    Balance Pending
+                  </Typography>
+                  <Typography variant="h6" color="error.contrastText">
+                    {formatCurrency(stats.totalRemaining)}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+            <Grid item xs={6} sm={4} md={2}>
+              <Card sx={{ bgcolor: 'grey.200' }}>
+                <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+                  <Typography variant="caption" color="text.secondary">
+                    Completed Value
+                  </Typography>
+                  <Typography variant="h6">
+                    {formatCurrency(stats.completedAmount)}
+                  </Typography>
+                </CardContent>
+              </Card>
+            </Grid>
+          </>
+        )}
       </Grid>
 
       <Grid container spacing={3}>
@@ -337,7 +355,7 @@ const Reports = ({ bookings, purohits }) => {
                   <TableCell>Purohit Name</TableCell>
                   <TableCell align="right">Total Assigned</TableCell>
                   <TableCell align="right">Completed</TableCell>
-                  <TableCell align="right">Completed Amount</TableCell>
+                  {!isBhadaji && <TableCell align="right">Completed Amount</TableCell>}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -347,12 +365,12 @@ const Reports = ({ bookings, purohits }) => {
                       <TableCell>{purohit.name}</TableCell>
                       <TableCell align="right">{purohit.count}</TableCell>
                       <TableCell align="right">{purohit.completed}</TableCell>
-                      <TableCell align="right">{formatCurrency(purohit.totalAmount)}</TableCell>
+                      {!isBhadaji && <TableCell align="right">{formatCurrency(purohit.totalAmount)}</TableCell>}
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} align="center">
+                    <TableCell colSpan={isBhadaji ? 3 : 4} align="center">
                       <Typography color="text.secondary">No purohit data for this month</Typography>
                     </TableCell>
                   </TableRow>
@@ -366,9 +384,11 @@ const Reports = ({ bookings, purohits }) => {
                     <TableCell align="right">
                       <strong>{purohitStats.reduce((sum, p) => sum + p.completed, 0)}</strong>
                     </TableCell>
-                    <TableCell align="right">
-                      <strong>{formatCurrency(purohitStats.reduce((sum, p) => sum + p.totalAmount, 0))}</strong>
-                    </TableCell>
+                    {!isBhadaji && (
+                      <TableCell align="right">
+                        <strong>{formatCurrency(purohitStats.reduce((sum, p) => sum + p.totalAmount, 0))}</strong>
+                      </TableCell>
+                    )}
                   </TableRow>
                 )}
               </TableBody>

@@ -60,9 +60,10 @@ import {
   generateReminderMessage,
   sendWhatsAppMessage
 } from '../services/notificationService';
-import { DEFAULT_PUROHITS } from '../config/constants';
+import { DEFAULT_PUROHITS, USER_ROLES } from '../config/constants';
 
-const Dashboard = ({ onLogout }) => {
+const Dashboard = ({ onLogout, userRole }) => {
+  const isBhadaji = userRole === USER_ROLES.BHADAJI;
   const [currentTab, setCurrentTab] = useState(0);
   const [bookings, setBookings] = useState([]);
   const [purohits, setPurohits] = useState(DEFAULT_PUROHITS);
@@ -180,13 +181,13 @@ const Dashboard = ({ onLogout }) => {
   };
 
   const handleExportExcel = () => {
-    exportToExcel(bookings);
+    exportToExcel(bookings, 'homa_bookings', userRole);
     showSnackbar('Excel file downloaded');
     handleExportMenuClose();
   };
 
   const handleExportPDF = () => {
-    exportToPDF(bookings);
+    exportToPDF(bookings, 'Homa Bookings Report', userRole);
     showSnackbar('PDF file downloaded');
     handleExportMenuClose();
   };
@@ -220,14 +221,16 @@ const Dashboard = ({ onLogout }) => {
       <AppBar position="static">
         <Toolbar>
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Homa & Havana Booking System
+            Homa & Havana Booking System {isBhadaji && '(Bhadaji View)'}
           </Typography>
           <IconButton color="inherit" onClick={loadData} title="Refresh">
             <Refresh />
           </IconButton>
-          <IconButton color="inherit" onClick={handleSendReminders} title="Send Reminders">
-            <Notifications />
-          </IconButton>
+          {!isBhadaji && (
+            <IconButton color="inherit" onClick={handleSendReminders} title="Send Reminders">
+              <Notifications />
+            </IconButton>
+          )}
           <IconButton color="inherit" onClick={handleExportMenuOpen} title="Export">
             <FileDownload />
           </IconButton>
@@ -317,37 +320,42 @@ const Dashboard = ({ onLogout }) => {
             onEdit={handleEditBooking}
             onDelete={handleDeleteBooking}
             onView={handleViewBooking}
+            userRole={userRole}
           />
         )}
 
         {currentTab === 2 && (
-          <Reports bookings={bookings} purohits={purohits} />
+          <Reports bookings={bookings} purohits={purohits} userRole={userRole} />
         )}
       </Container>
 
-      {/* Floating Action Button */}
-      <Fab
-        color="primary"
-        aria-label="add"
-        sx={{ position: 'fixed', bottom: 24, right: 24 }}
-        onClick={handleNewBooking}
-      >
-        <Add />
-      </Fab>
+      {/* Floating Action Button - Only for Admin */}
+      {!isBhadaji && (
+        <Fab
+          color="primary"
+          aria-label="add"
+          sx={{ position: 'fixed', bottom: 24, right: 24 }}
+          onClick={handleNewBooking}
+        >
+          <Add />
+        </Fab>
+      )}
 
-      {/* Booking Form Dialog */}
-      <BookingForm
-        open={formOpen}
-        onClose={() => {
-          setFormOpen(false);
-          setEditingBooking(null);
-        }}
-        onSave={handleSaveBooking}
-        booking={editingBooking}
-        purohits={purohits}
-        existingBookings={bookings}
-        selectedDate={selectedDate}
-      />
+      {/* Booking Form Dialog - Only for Admin */}
+      {!isBhadaji && (
+        <BookingForm
+          open={formOpen}
+          onClose={() => {
+            setFormOpen(false);
+            setEditingBooking(null);
+          }}
+          onSave={handleSaveBooking}
+          booking={editingBooking}
+          purohits={purohits}
+          existingBookings={bookings}
+          selectedDate={selectedDate}
+        />
+      )}
 
       {/* Booking Details Dialog */}
       <BookingDetails
@@ -355,6 +363,7 @@ const Dashboard = ({ onLogout }) => {
         onClose={() => setViewingBooking(null)}
         booking={viewingBooking}
         onEdit={handleEditBooking}
+        userRole={userRole}
       />
 
       {/* Delete Confirmation Dialog */}

@@ -29,9 +29,10 @@ import {
   Phone
 } from '@mui/icons-material';
 import { format } from 'date-fns';
-import { BOOKING_STATUS, TIME_SLOTS } from '../config/constants';
+import { BOOKING_STATUS, TIME_SLOTS, USER_ROLES } from '../config/constants';
 
-const BookingList = ({ bookings, onEdit, onDelete, onView, purohits }) => {
+const BookingList = ({ bookings, onEdit, onDelete, onView, purohits, userRole }) => {
+  const isBhadaji = userRole === USER_ROLES.BHADAJI;
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,7 +50,10 @@ const BookingList = ({ bookings, onEdit, onDelete, onView, purohits }) => {
     );
   };
 
-  const getSlotLabel = (slotId) => {
+  const getSlotLabel = (slotId, slotDisplay) => {
+    // Use slotDisplay if available (from new slot management system)
+    if (slotDisplay) return slotDisplay;
+    // Fallback to old TIME_SLOTS for backward compatibility
     const slot = TIME_SLOTS.find(s => s.id === slotId);
     return slot?.label.split(' ')[0] || slotId;
   };
@@ -90,7 +94,10 @@ const BookingList = ({ bookings, onEdit, onDelete, onView, purohits }) => {
   };
 
   const handleWhatsAppClick = (phone, booking) => {
-    const message = `Namaste! This is a reminder for your ${booking.homaType} booking on ${formatDate(booking.date)} (${getSlotLabel(booking.slot)} slot). Please confirm your attendance. Thank you!`;
+    const homaTypes = Array.isArray(booking.homaTypes)
+      ? booking.homaTypes.join(', ')
+      : booking.homaType;
+    const message = `Namaste! This is a reminder for your ${homaTypes} booking on ${formatDate(booking.date)} (${getSlotLabel(booking.slot, booking.slotDisplay)} slot). Please confirm your attendance. Thank you!`;
     window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
@@ -160,9 +167,9 @@ const BookingList = ({ bookings, onEdit, onDelete, onView, purohits }) => {
               <TableCell>Client</TableCell>
               <TableCell>Homa Type</TableCell>
               <TableCell>Purohit</TableCell>
-              <TableCell align="right">Total</TableCell>
-              <TableCell align="right">Advance</TableCell>
-              <TableCell align="right">Balance</TableCell>
+              {!isBhadaji && <TableCell align="right">Total</TableCell>}
+              {!isBhadaji && <TableCell align="right">Advance</TableCell>}
+              {!isBhadaji && <TableCell align="right">Balance</TableCell>}
               <TableCell>Status</TableCell>
               <TableCell align="center">Actions</TableCell>
             </TableRow>
@@ -173,30 +180,38 @@ const BookingList = ({ bookings, onEdit, onDelete, onView, purohits }) => {
               .map((booking) => (
                 <TableRow key={booking.id} hover>
                   <TableCell>{formatDate(booking.date)}</TableCell>
-                  <TableCell>{getSlotLabel(booking.slot)}</TableCell>
+                  <TableCell>{getSlotLabel(booking.slot, booking.slotDisplay)}</TableCell>
                   <TableCell>
                     <Box>
                       <Typography variant="body2" fontWeight="medium">
                         {booking.clientName}
                       </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {booking.clientPhone}
-                      </Typography>
+                      {!isBhadaji && (
+                        <Typography variant="caption" color="text.secondary">
+                          {booking.clientPhone}
+                        </Typography>
+                      )}
                     </Box>
                   </TableCell>
-                  <TableCell>{booking.homaType}</TableCell>
-                  <TableCell>{booking.purohitName || '-'}</TableCell>
-                  <TableCell align="right">{formatCurrency(booking.totalAmount)}</TableCell>
-                  <TableCell align="right">{formatCurrency(booking.advanceAmount)}</TableCell>
-                  <TableCell align="right">
-                    <Typography
-                      variant="body2"
-                      color={booking.remainingAmount > 0 ? 'error' : 'success'}
-                      fontWeight="medium"
-                    >
-                      {formatCurrency(booking.remainingAmount)}
-                    </Typography>
+                  <TableCell>
+                    {Array.isArray(booking.homaTypes)
+                      ? booking.homaTypes.join(', ')
+                      : booking.homaType}
                   </TableCell>
+                  <TableCell>{booking.purohitName || '-'}</TableCell>
+                  {!isBhadaji && <TableCell align="right">{formatCurrency(booking.totalAmount)}</TableCell>}
+                  {!isBhadaji && <TableCell align="right">{formatCurrency(booking.advanceAmount)}</TableCell>}
+                  {!isBhadaji && (
+                    <TableCell align="right">
+                      <Typography
+                        variant="body2"
+                        color={booking.remainingAmount > 0 ? 'error' : 'success'}
+                        fontWeight="medium"
+                      >
+                        {formatCurrency(booking.remainingAmount)}
+                      </Typography>
+                    </TableCell>
+                  )}
                   <TableCell>{getStatusChip(booking.status)}</TableCell>
                   <TableCell align="center">
                     <Box sx={{ display: 'flex', justifyContent: 'center' }}>
@@ -205,45 +220,49 @@ const BookingList = ({ bookings, onEdit, onDelete, onView, purohits }) => {
                           <Visibility fontSize="small" />
                         </IconButton>
                       </Tooltip>
-                      <Tooltip title="Edit">
-                        <IconButton size="small" onClick={() => onEdit(booking)}>
-                          <Edit fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="WhatsApp">
-                        <IconButton
-                          size="small"
-                          color="success"
-                          onClick={() => handleWhatsAppClick(booking.clientPhone, booking)}
-                        >
-                          <WhatsApp fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Call">
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => handlePhoneClick(booking.clientPhone)}
-                        >
-                          <Phone fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Delete">
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => onDelete(booking.id)}
-                        >
-                          <Delete fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
+                      {!isBhadaji && (
+                        <>
+                          <Tooltip title="Edit">
+                            <IconButton size="small" onClick={() => onEdit(booking)}>
+                              <Edit fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="WhatsApp">
+                            <IconButton
+                              size="small"
+                              color="success"
+                              onClick={() => handleWhatsAppClick(booking.clientPhone, booking)}
+                            >
+                              <WhatsApp fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Call">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => handlePhoneClick(booking.clientPhone)}
+                            >
+                              <Phone fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => onDelete(booking.id)}
+                            >
+                              <Delete fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </>
+                      )}
                     </Box>
                   </TableCell>
                 </TableRow>
               ))}
             {filteredBookings.length === 0 && (
               <TableRow>
-                <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={isBhadaji ? 7 : 10} align="center" sx={{ py: 4 }}>
                   <Typography color="text.secondary">
                     No bookings found
                   </Typography>

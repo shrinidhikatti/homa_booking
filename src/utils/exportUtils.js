@@ -2,7 +2,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
-import { TIME_SLOTS } from '../config/constants';
+import { TIME_SLOTS, USER_ROLES } from '../config/constants';
 
 // Format helpers
 const formatDate = (date) => {
@@ -21,43 +21,66 @@ const getSlotLabel = (slotId) => {
 };
 
 // Export bookings to Excel
-export const exportToExcel = (bookings, filename = 'homa_bookings') => {
-  const data = bookings.map(booking => ({
-    'Date': formatDate(booking.date),
-    'Time Slot': getSlotLabel(booking.slot),
-    'Client Name': booking.clientName,
-    'Contact': booking.clientPhone,
-    'Homa Type': booking.homaType,
-    'Purohit': booking.purohitName || '-',
-    'Total Amount': booking.totalAmount || 0,
-    'Advance Paid': booking.advanceAmount || 0,
-    'Balance': booking.remainingAmount || 0,
-    'Status': booking.status,
-    'Gotra': booking.gotra || '-',
-    'Sankalpa': booking.sankalpa || '-',
-    'Venue': booking.venueAddress || '-',
-    'Notes': booking.notes || '-'
-  }));
+export const exportToExcel = (bookings, filename = 'homa_bookings', userRole = USER_ROLES.ADMIN) => {
+  const isBhadaji = userRole === USER_ROLES.BHADAJI;
+
+  const data = bookings.map(booking => {
+    const baseData = {
+      'Date': formatDate(booking.date),
+      'Time Slot': getSlotLabel(booking.slot),
+      'Client Name': booking.clientName,
+      'Homa Type': Array.isArray(booking.homaTypes) ? booking.homaTypes.join(', ') : booking.homaType,
+      'Purohit': booking.purohitName || '-',
+      'Status': booking.status,
+      'Gotra': booking.gotra || '-',
+      'Sankalpa': booking.sankalpa || '-',
+      'Venue': booking.venueAddress || '-',
+      'Notes': booking.notes || '-'
+    };
+
+    if (!isBhadaji) {
+      return {
+        ...baseData,
+        'Contact': booking.clientPhone,
+        'Total Amount': booking.totalAmount || 0,
+        'Advance Paid': booking.advanceAmount || 0,
+        'Balance': booking.remainingAmount || 0
+      };
+    }
+
+    return baseData;
+  });
 
   const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
 
-  // Set column widths
-  const columnWidths = [
+  // Set column widths based on user role
+  const columnWidths = isBhadaji ? [
     { wch: 12 }, // Date
     { wch: 10 }, // Slot
     { wch: 20 }, // Client
-    { wch: 12 }, // Contact
     { wch: 20 }, // Homa Type
     { wch: 15 }, // Purohit
-    { wch: 12 }, // Total
-    { wch: 12 }, // Advance
-    { wch: 12 }, // Balance
     { wch: 10 }, // Status
     { wch: 15 }, // Gotra
     { wch: 15 }, // Sankalpa
     { wch: 25 }, // Venue
     { wch: 30 }  // Notes
+  ] : [
+    { wch: 12 }, // Date
+    { wch: 10 }, // Slot
+    { wch: 20 }, // Client
+    { wch: 20 }, // Homa Type
+    { wch: 15 }, // Purohit
+    { wch: 10 }, // Status
+    { wch: 15 }, // Gotra
+    { wch: 15 }, // Sankalpa
+    { wch: 25 }, // Venue
+    { wch: 30 }, // Notes
+    { wch: 12 }, // Contact
+    { wch: 12 }, // Total
+    { wch: 12 }, // Advance
+    { wch: 12 }  // Balance
   ];
   worksheet['!cols'] = columnWidths;
 
@@ -117,7 +140,8 @@ export const exportMonthlyReportToExcel = (bookings, purohitStats, stats, monthY
 };
 
 // Export bookings to PDF
-export const exportToPDF = (bookings, title = 'Homa Bookings Report') => {
+export const exportToPDF = (bookings, title = 'Homa Bookings Report', userRole = USER_ROLES.ADMIN) => {
+  const isBhadaji = userRole === USER_ROLES.BHADAJI;
   const doc = new jsPDF('l', 'mm', 'a4'); // Landscape orientation
 
   // Title
@@ -126,26 +150,46 @@ export const exportToPDF = (bookings, title = 'Homa Bookings Report') => {
   doc.setFontSize(10);
   doc.text(`Generated on: ${format(new Date(), 'dd MMM yyyy, hh:mm a')}`, 14, 27);
 
-  // Table data
-  const tableData = bookings.map(booking => [
-    formatDate(booking.date),
-    getSlotLabel(booking.slot),
-    booking.clientName,
-    booking.clientPhone,
-    booking.homaType,
-    booking.purohitName || '-',
-    formatCurrency(booking.totalAmount),
-    formatCurrency(booking.advanceAmount),
-    formatCurrency(booking.remainingAmount),
-    booking.status
-  ]);
+  // Table headers and data based on user role
+  const headers = isBhadaji ? [
+    'Date', 'Slot', 'Client', 'Homa Type', 'Purohit', 'Status', 'Gotra'
+  ] : [
+    'Date', 'Slot', 'Client', 'Phone', 'Homa Type',
+    'Purohit', 'Total', 'Advance', 'Balance', 'Status'
+  ];
+
+  const tableData = bookings.map(booking => {
+    const homaType = Array.isArray(booking.homaTypes) ? booking.homaTypes.join(', ') : booking.homaType;
+
+    if (isBhadaji) {
+      return [
+        formatDate(booking.date),
+        getSlotLabel(booking.slot),
+        booking.clientName,
+        homaType,
+        booking.purohitName || '-',
+        booking.status,
+        booking.gotra || '-'
+      ];
+    }
+
+    return [
+      formatDate(booking.date),
+      getSlotLabel(booking.slot),
+      booking.clientName,
+      booking.clientPhone,
+      homaType,
+      booking.purohitName || '-',
+      formatCurrency(booking.totalAmount),
+      formatCurrency(booking.advanceAmount),
+      formatCurrency(booking.remainingAmount),
+      booking.status
+    ];
+  });
 
   doc.autoTable({
     startY: 32,
-    head: [[
-      'Date', 'Slot', 'Client', 'Phone', 'Homa Type',
-      'Purohit', 'Total', 'Advance', 'Balance', 'Status'
-    ]],
+    head: [headers],
     body: tableData,
     styles: { fontSize: 8 },
     headStyles: { fillColor: [63, 81, 181] },

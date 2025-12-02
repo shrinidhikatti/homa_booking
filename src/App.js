@@ -97,6 +97,7 @@ const theme = createTheme({
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState(null);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -106,6 +107,7 @@ function App() {
         const parsed = JSON.parse(authData);
         if (parsed.isLoggedIn) {
           setIsAuthenticated(true);
+          setUserRole(parsed.role || 'admin');
         }
       } catch (e) {
         localStorage.removeItem('homaBookingAuth');
@@ -113,13 +115,15 @@ function App() {
     }
   }, []);
 
-  const handleLogin = (status) => {
+  const handleLogin = (status, role) => {
     setIsAuthenticated(status);
+    setUserRole(role);
   };
 
   const handleLogout = () => {
     localStorage.removeItem('homaBookingAuth');
     setIsAuthenticated(false);
+    setUserRole(null);
   };
 
   return (
@@ -127,7 +131,7 @@ function App() {
       <LocalizationProvider dateAdapter={AdapterDateFns}>
         <CssBaseline />
         {isAuthenticated ? (
-          <Dashboard onLogout={handleLogout} />
+          <Dashboard onLogout={handleLogout} userRole={userRole} />
         ) : (
           <Login onLogin={handleLogin} />
         )}

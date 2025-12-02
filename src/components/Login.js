@@ -16,6 +16,7 @@ import {
   Lock,
   Person
 } from '@mui/icons-material';
+import { USER_ROLES } from '../config/constants';
 
 const Login = ({ onLogin }) => {
   const [username, setUsername] = useState('');
@@ -24,9 +25,11 @@ const Login = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Hardcoded credentials (for production, use Firebase Auth)
-  const VALID_USERNAME = 'vishal';
-  const VALID_PASSWORD = 'vishal@1990';
+  // User credentials with roles
+  const USERS = [
+    { username: 'vishal', password: 'vishal@1990', role: USER_ROLES.ADMIN, name: 'Admin' },
+    { username: 'bhadaji', password: 'bhadaji@123', role: USER_ROLES.BHADAJI, name: 'Bhadaji' }
+  ];
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -35,14 +38,18 @@ const Login = ({ onLogin }) => {
 
     // Simulate login delay
     setTimeout(() => {
-      if (username === VALID_USERNAME && password === VALID_PASSWORD) {
-        // Store login state in localStorage
+      const user = USERS.find(u => u.username === username && u.password === password);
+
+      if (user) {
+        // Store login state with role in localStorage
         localStorage.setItem('homaBookingAuth', JSON.stringify({
           isLoggedIn: true,
-          username: username,
+          username: user.username,
+          role: user.role,
+          name: user.name,
           loginTime: new Date().toISOString()
         }));
-        onLogin(true);
+        onLogin(true, user.role);
       } else {
         setError('Invalid username or password');
       }
@@ -83,7 +90,7 @@ const Login = ({ onLogin }) => {
               🙏 Homa Booking
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Admin Login
+              Login to continue
             </Typography>
           </Box>
 
