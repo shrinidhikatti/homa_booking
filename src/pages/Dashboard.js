@@ -40,6 +40,7 @@ import BookingForm from '../components/BookingForm';
 import BookingList from '../components/BookingList';
 import Reports from '../components/Reports';
 import BookingDetails from '../components/BookingDetails';
+import DateBookingsDialog from '../components/DateBookingsDialog';
 
 import {
   getAllBookings,
@@ -74,6 +75,7 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
   const [formOpen, setFormOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState(null);
   const [viewingBooking, setViewingBooking] = useState(null);
+  const [dateBookingsDialogOpen, setDateBookingsDialogOpen] = useState(false);
   const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, bookingId: null });
@@ -127,8 +129,15 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
 
   const handleDateSelect = (date) => {
     setSelectedDate(date);
-    setEditingBooking(null);
-    setFormOpen(true);
+    setDateBookingsDialogOpen(true);
+  };
+
+  const getBookingsForSelectedDate = () => {
+    if (!selectedDate || !bookings) return [];
+    return bookings.filter(booking => {
+      const bookingDate = booking.date?.toDate ? booking.date.toDate() : new Date(booking.date);
+      return bookingDate.toDateString() === selectedDate.toDateString();
+    });
   };
 
   const handleNewBooking = () => {
@@ -371,6 +380,15 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
           selectedDate={selectedDate}
         />
       )}
+
+      {/* Date Bookings Dialog */}
+      <DateBookingsDialog
+        open={dateBookingsDialogOpen}
+        onClose={() => setDateBookingsDialogOpen(false)}
+        date={selectedDate}
+        bookings={getBookingsForSelectedDate()}
+        onViewDetails={handleViewBooking}
+      />
 
       {/* Booking Details Dialog */}
       <BookingDetails
