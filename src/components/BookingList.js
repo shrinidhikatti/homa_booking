@@ -26,18 +26,23 @@ import {
   Search,
   Visibility,
   WhatsApp,
-  Phone
+  Phone,
+  Check,
+  CheckCircle
 } from '@mui/icons-material';
 import { format } from 'date-fns';
-import { BOOKING_STATUS, TIME_SLOTS, USER_ROLES } from '../config/constants';
+import { BOOKING_STATUS, TIME_SLOTS, USER_ROLES, PAYMENT_RECEIVED_BY } from '../config/constants';
 
-const BookingList = ({ bookings, onEdit, onDelete, onView, purohits, userRole }) => {
+const BookingList = ({ bookings, onEdit, onDelete, onView, purohits, userRole, onUpdatePurohitCharges, onMarkComplete, onUpdatePaymentReceivedBy }) => {
   const isBhadaji = userRole === USER_ROLES.BHADAJI;
+  const isPurohit = userRole === USER_ROLES.PUROHIT;
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [purohitFilter, setPurohitFilter] = useState('all');
+  const [dateFilter, setDateFilter] = useState('upcoming'); // 'upcoming', 'past', 'all'
+  const [purohitChargesInput, setPurohitChargesInput] = useState({});
 
   const getStatusChip = (status) => {
     const statusConfig = BOOKING_STATUS.find(s => s.value === status);
@@ -72,6 +77,20 @@ const BookingList = ({ bookings, onEdit, onDelete, onView, purohits, userRole })
     }).format(amount || 0);
   };
 
+  const getPaymentReceivedByLabel = (value) => {
+    const option = PAYMENT_RECEIVED_BY.find(p => p.value === value);
+    return option?.label || '-';
+  };
+
+  const handlePaymentReceivedByChange = async (bookingId, value) => {
+    if (onUpdatePaymentReceivedBy) {
+      await onUpdatePaymentReceivedBy(bookingId, value);
+    }
+  };
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const filteredBookings = bookings?.filter(booking => {
     const matchesSearch =
       booking.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -81,7 +100,27 @@ const BookingList = ({ bookings, onEdit, onDelete, onView, purohits, userRole })
     const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
     const matchesPurohit = purohitFilter === 'all' || booking.purohitId === purohitFilter;
 
-    return matchesSearch && matchesStatus && matchesPurohit;
+    // Date filter
+    const bookingDate = booking.date?.toDate ? booking.date.toDate() : new Date(booking.date);
+    bookingDate.setHours(0, 0, 0, 0);
+
+    let matchesDate = true;
+    if (dateFilter === 'upcoming') {
+      matchesDate = bookingDate >= today;
+    } else if (dateFilter === 'past') {
+      matchesDate = bookingDate < today;
+    }
+
+    return matchesSearch && matchesStatus && matchesPurohit && matchesDate;
+  }).sort((a, b) => {
+    // Sort by date
+    const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+    const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+
+    if (dateFilter === 'past') {
+      return dateB - dateA; // Most recent first for past
+    }
+    return dateA - dateB; // Nearest first for upcoming/all
   }) || [];
 
   const handleChangePage = (event, newPage) => {
@@ -103,6 +142,25 @@ const BookingList = ({ bookings, onEdit, onDelete, onView, purohits, userRole })
 
   const handlePhoneClick = (phone) => {
     window.open(`tel:+91${phone}`, '_self');
+  };
+
+  const handlePurohitChargesChange = (bookingId, value) => {
+    setPurohitChargesInput(prev => ({
+      ...prev,
+      [bookingId]: value
+    }));
+  };
+
+  const handleSavePurohitCharges = async (bookingId) => {
+    const charges = parseFloat(purohitChargesInput[bookingId]);
+    if (charges && charges > 0 && onUpdatePurohitCharges) {
+      await onUpdatePurohitCharges(bookingId, charges);
+      // Clear the input after saving
+      setPurohitChargesInput(prev => ({
+        ...prev,
+        [bookingId]: ''
+      }));
+    }
   };
 
   return (
@@ -153,6 +211,18 @@ const BookingList = ({ bookings, onEdit, onDelete, onView, purohits, userRole })
             ))}
           </Select>
         </FormControl>
+        <FormControl size="small" sx={{ minWidth: 120 }}>
+          <InputLabel>Date</InputLabel>
+          <Select
+            value={dateFilter}
+            label="Date"
+            onChange={(e) => setDateFilter(e.target.value)}
+          >
+            <MenuItem value="upcoming">Upcoming</MenuItem>
+            <MenuItem value="past">Past</MenuItem>
+            <MenuItem value="all">All Dates</MenuItem>
+          </Select>
+        </FormControl>
         <Typography variant="body2" sx={{ alignSelf: 'center', ml: 'auto' }}>
           {filteredBookings.length} booking(s) found
         </Typography>
@@ -167,9 +237,12 @@ const BookingList = ({ bookings, onEdit, onDelete, onView, purohits, userRole })
               <TableCell>Client</TableCell>
               <TableCell>Homa Type</TableCell>
               <TableCell>Purohit</TableCell>
-              {!isBhadaji && <TableCell align="right">Total</TableCell>}
-              {!isBhadaji && <TableCell align="right">Advance</TableCell>}
-              {!isBhadaji && <TableCell align="right">Balance</TableCell>}
+              {!isBhadaji && !isPurohit && <TableCell align="right">Total</TableCell>}
+              {!isBhadaji && !isPurohit && <TableCell align="right">Advance</TableCell>}
+              {!isBhadaji && !isPurohit && <TableCell align="right">Balance</TableCell>}
+              {!isBhadaji && !isPurohit && <TableCell align="right">Purohit Charges</TableCell>}
+              {isPurohit && <TableCell align="right">My Charges</TableCell>}
+              {!isBhadaji && <TableCell>Payment By</TableCell>}
               <TableCell>Status</TableCell>
               <TableCell align="center">Actions</TableCell>
             </TableRow>
@@ -199,9 +272,9 @@ const BookingList = ({ bookings, onEdit, onDelete, onView, purohits, userRole })
                       : booking.homaType}
                   </TableCell>
                   <TableCell>{booking.purohitName || '-'}</TableCell>
-                  {!isBhadaji && <TableCell align="right">{formatCurrency(booking.totalAmount)}</TableCell>}
-                  {!isBhadaji && <TableCell align="right">{formatCurrency(booking.advanceAmount)}</TableCell>}
-                  {!isBhadaji && (
+                  {!isBhadaji && !isPurohit && <TableCell align="right">{formatCurrency(booking.totalAmount)}</TableCell>}
+                  {!isBhadaji && !isPurohit && <TableCell align="right">{formatCurrency(booking.advanceAmount)}</TableCell>}
+                  {!isBhadaji && !isPurohit && (
                     <TableCell align="right">
                       <Typography
                         variant="body2"
@@ -212,6 +285,64 @@ const BookingList = ({ bookings, onEdit, onDelete, onView, purohits, userRole })
                       </Typography>
                     </TableCell>
                   )}
+                  {!isBhadaji && !isPurohit && (
+                    <TableCell align="right">
+                      <Typography variant="body2" fontWeight="medium">
+                        {booking.purohitCharges ? formatCurrency(booking.purohitCharges) : '-'}
+                      </Typography>
+                    </TableCell>
+                  )}
+                  {isPurohit && (
+                    <TableCell align="right">
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                        <TextField
+                          size="small"
+                          type="number"
+                          placeholder={booking.purohitCharges ? `₹${booking.purohitCharges}` : "Enter"}
+                          value={purohitChargesInput[booking.id] || ''}
+                          onChange={(e) => handlePurohitChargesChange(booking.id, e.target.value)}
+                          sx={{ width: 100 }}
+                          InputProps={{
+                            startAdornment: <InputAdornment position="start">₹</InputAdornment>
+                          }}
+                        />
+                        <IconButton
+                          size="small"
+                          color="primary"
+                          onClick={() => handleSavePurohitCharges(booking.id)}
+                          disabled={!purohitChargesInput[booking.id]}
+                        >
+                          <Check fontSize="small" />
+                        </IconButton>
+                      </Box>
+                      {booking.purohitCharges && (
+                        <Typography variant="caption" color="success.main" sx={{ display: 'block', mt: 0.5 }}>
+                          Submitted: ₹{booking.purohitCharges}
+                        </Typography>
+                      )}
+                    </TableCell>
+                  )}
+                  {!isBhadaji && (
+                    <TableCell>
+                      <FormControl size="small" sx={{ minWidth: 100 }}>
+                        <Select
+                          value={booking.paymentReceivedBy || ''}
+                          onChange={(e) => handlePaymentReceivedByChange(booking.id, e.target.value)}
+                          displayEmpty
+                          sx={{ fontSize: '0.875rem' }}
+                        >
+                          <MenuItem value="">
+                            <em>Not Set</em>
+                          </MenuItem>
+                          {PAYMENT_RECEIVED_BY.map(option => (
+                            <MenuItem key={option.value} value={option.value}>
+                              {option.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+                    </TableCell>
+                  )}
                   <TableCell>{getStatusChip(booking.status)}</TableCell>
                   <TableCell align="center">
                     <Box sx={{ display: 'flex', justifyContent: 'center' }}>
@@ -220,6 +351,17 @@ const BookingList = ({ bookings, onEdit, onDelete, onView, purohits, userRole })
                           <Visibility fontSize="small" />
                         </IconButton>
                       </Tooltip>
+                      {isPurohit && booking.status !== 'completed' && (
+                        <Tooltip title="Mark as Completed">
+                          <IconButton
+                            size="small"
+                            color="success"
+                            onClick={() => onMarkComplete(booking.id)}
+                          >
+                            <CheckCircle fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
                       {!isBhadaji && (
                         <>
                           <Tooltip title="Edit">
@@ -262,7 +404,7 @@ const BookingList = ({ bookings, onEdit, onDelete, onView, purohits, userRole })
               ))}
             {filteredBookings.length === 0 && (
               <TableRow>
-                <TableCell colSpan={isBhadaji ? 7 : 10} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={isBhadaji ? 7 : isPurohit ? 9 : 12} align="center" sx={{ py: 4 }}>
                   <Typography color="text.secondary">
                     No bookings found
                   </Typography>

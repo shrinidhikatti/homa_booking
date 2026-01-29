@@ -92,3 +92,10 @@ export const USER_ROLES = {
   BHADAJI: 'bhadaji', // Restricted access - can't see phone/amount
   PUROHIT: 'purohit' // Purohit-specific view - only see assigned bookings
 };
+
+// Payment received by options
+export const PAYMENT_RECEIVED_BY = [
+  { value: 'vikas', label: 'Vikas' },
+  { value: 'new_office', label: 'New Office' },
+  { value: 'old_office', label: 'Old Office' }
+];

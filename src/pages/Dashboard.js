@@ -59,7 +59,8 @@ import {
 import {
   sendBulkWhatsAppReminders,
   generateReminderMessage,
-  sendWhatsAppMessage
+  sendWhatsAppMessage,
+  generateConfirmationMessage
 } from '../services/notificationService';
 import { DEFAULT_PUROHITS, USER_ROLES } from '../config/constants';
 
@@ -164,10 +165,40 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
           prev.map(b => b.id === editingBooking.id ? { ...bookingData, id: editingBooking.id } : b)
         );
         showSnackbar('Booking updated successfully');
+
+        // Send confirmation WhatsApp if status changed to 'booked'
+        if (bookingData.status === 'booked' && editingBooking.status !== 'booked') {
+          const message = generateConfirmationMessage(bookingData);
+          const result = await sendWhatsAppMessage(bookingData.clientPhone, message, bookingData);
+          if (result.success) {
+            if (result.method === 'web') {
+              showSnackbar('WhatsApp opened - please send manually');
+            } else if (result.message) {
+              showSnackbar(`Confirmation sent - ${result.message}`);
+            } else {
+              showSnackbar('Confirmation sent to client and purohit');
+            }
+          }
+        }
       } else {
         const newBooking = await createBooking(bookingData);
         setBookings(prev => [...prev, newBooking]);
         showSnackbar('Booking created successfully');
+
+        // Send confirmation WhatsApp if status is 'booked'
+        if (newBooking.status === 'booked') {
+          const message = generateConfirmationMessage(newBooking);
+          const result = await sendWhatsAppMessage(newBooking.clientPhone, message, newBooking);
+          if (result.success) {
+            if (result.method === 'web') {
+              showSnackbar('WhatsApp opened - please send manually');
+            } else if (result.message) {
+              showSnackbar(`Confirmation sent - ${result.message}`);
+            } else {
+              showSnackbar('Confirmation sent to client and purohit');
+            }
+          }
+        }
       }
       setFormOpen(false);
       setEditingBooking(null);
@@ -191,6 +222,66 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
       showSnackbar('Error deleting booking', 'error');
     } finally {
       setDeleteConfirm({ open: false, bookingId: null });
+    }
+  };
+
+  const handleUpdatePurohitCharges = async (bookingId, charges) => {
+    try {
+      const bookingToUpdate = bookings.find(b => b.id === bookingId);
+      if (bookingToUpdate) {
+        const updatedData = {
+          ...bookingToUpdate,
+          purohitCharges: charges
+        };
+        await updateBooking(bookingId, updatedData);
+        setBookings(prev =>
+          prev.map(b => b.id === bookingId ? { ...b, purohitCharges: charges } : b)
+        );
+        showSnackbar('Charges submitted successfully');
+      }
+    } catch (error) {
+      console.error('Error updating purohit charges:', error);
+      showSnackbar('Error submitting charges', 'error');
+    }
+  };
+
+  const handleMarkComplete = async (bookingId) => {
+    try {
+      const bookingToUpdate = bookings.find(b => b.id === bookingId);
+      if (bookingToUpdate) {
+        const updatedData = {
+          ...bookingToUpdate,
+          status: 'completed'
+        };
+        await updateBooking(bookingId, updatedData);
+        setBookings(prev =>
+          prev.map(b => b.id === bookingId ? { ...b, status: 'completed' } : b)
+        );
+        showSnackbar('Homa marked as completed');
+      }
+    } catch (error) {
+      console.error('Error marking as complete:', error);
+      showSnackbar('Error marking as complete', 'error');
+    }
+  };
+
+  const handleUpdatePaymentReceivedBy = async (bookingId, receivedBy) => {
+    try {
+      const bookingToUpdate = bookings.find(b => b.id === bookingId);
+      if (bookingToUpdate) {
+        const updatedData = {
+          ...bookingToUpdate,
+          paymentReceivedBy: receivedBy
+        };
+        await updateBooking(bookingId, updatedData);
+        setBookings(prev =>
+          prev.map(b => b.id === bookingId ? { ...b, paymentReceivedBy: receivedBy } : b)
+        );
+        showSnackbar('Payment received by updated');
+      }
+    } catch (error) {
+      console.error('Error updating payment received by:', error);
+      showSnackbar('Error updating payment info', 'error');
     }
   };
 
@@ -221,11 +312,24 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
         showSnackbar('No bookings for tomorrow', 'info');
         return;
       }
-      sendBulkWhatsAppReminders(upcomingBookings);
-      showSnackbar(`Sending reminders for ${upcomingBookings.length} booking(s)`);
+
+      showSnackbar(`Sending reminders for ${upcomingBookings.length} booking(s)...`, 'info');
+
+      const result = await sendBulkWhatsAppReminders(upcomingBookings);
+
+      if (result.method === 'web') {
+        showSnackbar(`Opening WhatsApp for ${upcomingBookings.length} booking(s) (client & purohit)`, 'success');
+      } else {
+        const totalSent = result.results ? result.results.filter(r => r.success).length : result.sent;
+        const totalFailed = result.results ? result.results.filter(r => !r.success).length : result.failed;
+        showSnackbar(
+          `Reminders sent to clients & purohits: ${totalSent} successful, ${totalFailed} failed`,
+          totalFailed > 0 ? 'warning' : 'success'
+        );
+      }
     } catch (error) {
       console.error('Error sending reminders:', error);
-      showSnackbar('Error fetching upcoming bookings', 'error');
+      showSnackbar('Error sending reminders', 'error');
     }
   };
 
@@ -303,7 +407,7 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
           >
             <Tab icon={<CalendarMonth />} label="Calendar" iconPosition="start" />
             <Tab icon={<List />} label="Bookings" iconPosition="start" />
-            <Tab icon={<Assessment />} label="Reports" iconPosition="start" />
+            {!isPurohit && <Tab icon={<Assessment />} label="Reports" iconPosition="start" />}
           </Tabs>
           {currentTab === 0 && (
             <Tooltip title="Show Tithi, Nakshatra, Vāra details on calendar">
@@ -345,10 +449,13 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
             onDelete={handleDeleteBooking}
             onView={handleViewBooking}
             userRole={userRole}
+            onUpdatePurohitCharges={handleUpdatePurohitCharges}
+            onMarkComplete={handleMarkComplete}
+            onUpdatePaymentReceivedBy={handleUpdatePaymentReceivedBy}
           />
         )}
 
-        {currentTab === 2 && (
+        {currentTab === 2 && !isPurohit && (
           <Reports bookings={bookings} purohits={purohits} userRole={userRole} />
         )}
       </Container>
@@ -397,6 +504,7 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
         booking={viewingBooking}
         onEdit={handleEditBooking}
         userRole={userRole}
+        onUpdatePurohitCharges={handleUpdatePurohitCharges}
       />
 
       {/* Delete Confirmation Dialog */}

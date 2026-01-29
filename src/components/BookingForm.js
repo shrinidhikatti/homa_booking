@@ -33,7 +33,8 @@ import {
   SANKALPA_TYPES,
   BOOKING_STATUS,
   BOOKING_START_DATE,
-  BOOKING_END_DATE
+  BOOKING_END_DATE,
+  PAYMENT_RECEIVED_BY
 } from '../config/constants';
 import { Timestamp } from 'firebase/firestore';
 
@@ -49,6 +50,7 @@ const BookingForm = ({ open, onClose, onSave, booking, purohits, existingBooking
     totalAmount: 0,
     advanceAmount: 0,
     remainingAmount: 0,
+    paymentReceivedBy: '',
     purohitId: '',
     purohitName: '',
     status: 'pending',
@@ -453,7 +455,7 @@ const BookingForm = ({ open, onClose, onSave, booking, purohits, existingBooking
               </Grid>
 
               {/* Payment Details - Manual Pricing */}
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={3}>
                 <TextField
                   fullWidth
                   required
@@ -462,13 +464,13 @@ const BookingForm = ({ open, onClose, onSave, booking, purohits, existingBooking
                   value={formData.totalAmount}
                   onChange={handleChange('totalAmount')}
                   error={!!errors.totalAmount}
-                  helperText={errors.totalAmount || 'Set price based on customer'}
+                  helperText={errors.totalAmount || 'Set price'}
                   InputProps={{
                     startAdornment: <InputAdornment position="start">₹</InputAdornment>
                   }}
                 />
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={3}>
                 <TextField
                   fullWidth
                   type="number"
@@ -482,7 +484,7 @@ const BookingForm = ({ open, onClose, onSave, booking, purohits, existingBooking
                   }}
                 />
               </Grid>
-              <Grid item xs={12} sm={4}>
+              <Grid item xs={12} sm={3}>
                 <TextField
                   fullWidth
                   disabled
@@ -492,6 +494,25 @@ const BookingForm = ({ open, onClose, onSave, booking, purohits, existingBooking
                     startAdornment: <InputAdornment position="start">₹</InputAdornment>
                   }}
                 />
+              </Grid>
+              <Grid item xs={12} sm={3}>
+                <FormControl fullWidth>
+                  <InputLabel>Payment Received By</InputLabel>
+                  <Select
+                    value={formData.paymentReceivedBy}
+                    label="Payment Received By"
+                    onChange={handleChange('paymentReceivedBy')}
+                  >
+                    <MenuItem value="">
+                      <em>Not Set</em>
+                    </MenuItem>
+                    {PAYMENT_RECEIVED_BY.map(option => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               </Grid>
 
               <Grid item xs={12}>

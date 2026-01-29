@@ -1,8 +1,14 @@
 import { format } from 'date-fns';
 import { TIME_SLOTS } from '../config/constants';
+import {
+  sendBookingConfirmation as msg91SendConfirmation,
+  sendBookingReminder as msg91SendReminder,
+  sendBulkWhatsAppReminders as msg91SendBulkReminders,
+  sendWhatsAppViaWeb
+} from './msg91Service';
 
-// Note: For production use, you'll need to integrate with actual SMS/WhatsApp APIs
-// Options: Twilio, MSG91, Gupshup, WhatsApp Business API
+// MSG91 WhatsApp Integration is now active
+// Using WhatsApp Number: 919632691895
 
 const getSlotLabel = (slotId) => {
   const slot = TIME_SLOTS.find(s => s.id === slotId);
@@ -34,38 +40,91 @@ Thank you!`;
 
 // Generate booking confirmation message
 export const generateConfirmationMessage = (booking) => {
-  return `Namaste ${booking.clientName}!
+  return `🙏 Namaste,
 
-Your ${booking.homaType} has been booked successfully!
+Your Homa has been successfully booked as per the auspicious muhurta.
 
-📅 Date: ${formatDate(booking.date)}
-⏰ Time: ${getSlotLabel(booking.slot)}
+🗓 Date: ${formatDate(booking.date)}
+⏰ Time: ${booking.slot || getSlotLabel(booking.slot)}
+📍 Location: https://g.co/kgs/fn1nFkG
 
-💰 Total Amount: ₹${(booking.totalAmount || 0).toLocaleString('en-IN')}
-💵 Advance Paid: ₹${(booking.advanceAmount || 0).toLocaleString('en-IN')}
-${booking.remainingAmount > 0 ? `📌 Balance: ₹${booking.remainingAmount.toLocaleString('en-IN')}` : '✅ Fully Paid'}
+All required pooja samagri and Vedic arrangements will be taken care of by our team as per Shastra vidhi.
 
-We will send you a reminder one day before the scheduled date.
+For any clarification or assistance, please feel free to contact us:
+📞 9590033894
 
-Thank you for your booking!`;
+With divine blessings,
+🌿 Shri V. M. Joshi Vastu & Astrologer
+✨ Authentic Vedic Rituals | Astrology | Vastu Shastra
+🌐 astrovastushrivmjoshi.com`;
 };
 
-// Send WhatsApp message (opens WhatsApp web/app)
-export const sendWhatsAppMessage = (phone, message) => {
-  const cleanPhone = phone.replace(/\D/g, '');
-  const formattedPhone = cleanPhone.startsWith('91') ? cleanPhone : `91${cleanPhone}`;
-  const encodedMessage = encodeURIComponent(message);
-  window.open(`https://wa.me/${formattedPhone}?text=${encodedMessage}`, '_blank');
+// Send WhatsApp message using MSG91 API
+export const sendWhatsAppMessage = async (phone, message, booking = null) => {
+  try {
+    // If MSG91 is configured and we have booking data, use API
+    if (booking && process.env.REACT_APP_MSG91_AUTH_KEY &&
+        process.env.REACT_APP_MSG91_AUTH_KEY !== 'your_msg91_auth_key_here') {
+
+      // Determine which template to use based on message content
+      if (message.includes('successfully booked')) {
+        return await msg91SendConfirmation(booking);
+      } else if (message.includes('reminder')) {
+        return await msg91SendReminder(booking);
+      }
+    }
+
+    // Fallback to WhatsApp Web (manual sending)
+    sendWhatsAppViaWeb(phone, message);
+    return { success: true, method: 'web' };
+  } catch (error) {
+    console.error('Error sending WhatsApp:', error);
+    // Fallback to web if API fails
+    sendWhatsAppViaWeb(phone, message);
+    return { success: true, method: 'web-fallback' };
+  }
 };
 
-// Send bulk WhatsApp reminders (opens multiple tabs)
-export const sendBulkWhatsAppReminders = (bookings) => {
-  bookings.forEach((booking, index) => {
-    setTimeout(() => {
-      const message = generateReminderMessage(booking);
-      sendWhatsAppMessage(booking.clientPhone, message);
-    }, index * 1000); // 1 second delay between each to avoid blocking
-  });
+// Send bulk WhatsApp reminders using MSG91 API
+export const sendBulkWhatsAppReminders = async (bookings) => {
+  try {
+    // If MSG91 is configured, use API for bulk sending
+    if (process.env.REACT_APP_MSG91_AUTH_KEY &&
+        process.env.REACT_APP_MSG91_AUTH_KEY !== 'your_msg91_auth_key_here') {
+
+      console.log('Sending bulk reminders via MSG91 API...');
+      const results = await msg91SendBulkReminders(bookings);
+
+      const successCount = results.filter(r => r.success).length;
+      const failedCount = results.filter(r => !r.success).length;
+
+      console.log(`Bulk send complete: ${successCount} sent, ${failedCount} failed`);
+      return {
+        success: true,
+        total: bookings.length,
+        sent: successCount,
+        failed: failedCount,
+        results
+      };
+    }
+
+    // Fallback to WhatsApp Web (opens multiple tabs)
+    bookings.forEach((booking, index) => {
+      setTimeout(() => {
+        const message = generateReminderMessage(booking);
+        sendWhatsAppViaWeb(booking.clientPhone, message);
+      }, index * 1000); // 1 second delay between each
+    });
+
+    return {
+      success: true,
+      method: 'web',
+      total: bookings.length
+    };
+  } catch (error) {
+    console.error('Error sending bulk reminders:', error);
+    throw error;
+  }
 };
 
 // For SMS integration with Twilio (requires backend/Cloud Functions)

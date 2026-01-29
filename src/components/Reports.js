@@ -33,6 +33,7 @@ import {
 } from 'recharts';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns';
 import { USER_ROLES } from '../config/constants';
+import PurohitPaymentReport from './PurohitPaymentReport';
 
 const Reports = ({ bookings, purohits, userRole }) => {
   const isBhadaji = userRole === USER_ROLES.BHADAJI;
@@ -395,6 +396,13 @@ const Reports = ({ bookings, purohits, userRole }) => {
             </Table>
           </TableContainer>
         </Grid>
+
+        {/* Purohit Payment Report - Admin Only */}
+        {!isBhadaji && (
+          <Grid item xs={12} sx={{ mt: 3 }}>
+            <PurohitPaymentReport bookings={bookings} purohits={purohits} />
+          </Grid>
+        )}
       </Grid>
     </Paper>
   );
