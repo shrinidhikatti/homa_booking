@@ -41,6 +41,7 @@ import BookingList from '../components/BookingList';
 import Reports from '../components/Reports';
 import BookingDetails from '../components/BookingDetails';
 import DateBookingsDialog from '../components/DateBookingsDialog';
+import Footer from '../components/Footer';
 
 import {
   getAllBookings,
@@ -530,6 +531,9 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* Footer */}
+      <Footer />
     </Box>
   );
 };
