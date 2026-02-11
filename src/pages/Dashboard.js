@@ -336,140 +336,418 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          background: 'linear-gradient(135deg, #FAF8F5 0%, #FFF9F0 100%)',
+          gap: 3
+        }}
+      >
+        <Typography
+          sx={{
+            fontSize: '3rem',
+            background: 'linear-gradient(135deg, #FF6B00 0%, #FF8C00 50%, #FFA500 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            animation: 'pulse 2s ease-in-out infinite',
+            '@keyframes pulse': {
+              '0%, 100%': { opacity: 0.6 },
+              '50%': { opacity: 1 }
+            }
+          }}
+        >
+          ॐ
+        </Typography>
+        <CircularProgress
+          size={48}
+          thickness={4}
+          sx={{
+            color: '#FF8C00',
+            '& .MuiCircularProgress-circle': {
+              strokeLinecap: 'round',
+            }
+          }}
+        />
+        <Typography
+          variant="body1"
+          sx={{
+            color: '#6B5B47',
+            fontWeight: 500,
+            letterSpacing: '0.05em'
+          }}
+        >
+          Loading sacred schedule...
+        </Typography>
       </Box>
     );
   }
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box sx={{ flexGrow: 1, minHeight: '100vh', background: 'linear-gradient(135deg, #FAF8F5 0%, #FFF9F0 100%)' }}>
       {/* App Bar */}
-      <AppBar position="static">
-        <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-            Homa & Havana Booking System {isBhadaji && '(Bhadaji View)'} {isPurohit && '(Purohit View)'}
-          </Typography>
-          <IconButton color="inherit" onClick={loadData} title="Refresh">
-            <Refresh />
-          </IconButton>
-          {!isBhadaji && !isPurohit && (
-            <IconButton color="inherit" onClick={handleSendReminders} title="Send Reminders">
-              <Notifications />
-            </IconButton>
-          )}
-          {!isPurohit && (
-            <IconButton color="inherit" onClick={handleExportMenuOpen} title="Export">
-              <FileDownload />
-            </IconButton>
-          )}
-          <Tooltip title="Logout">
-            <IconButton color="inherit" onClick={onLogout}>
-              <Logout />
-            </IconButton>
-          </Tooltip>
+      <AppBar position="static" elevation={0}>
+        <Toolbar sx={{ py: 1.5, px: { xs: 2, sm: 3 } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1 }}>
+            <Typography
+              sx={{
+                fontSize: '2rem',
+                background: 'linear-gradient(135deg, #FF6B00 0%, #FF8C00 50%, #FFA500 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+                lineHeight: 1,
+              }}
+            >
+              ॐ
+            </Typography>
+            <Box>
+              <Typography
+                variant="h5"
+                component="div"
+                sx={{
+                  fontWeight: 700,
+                  fontFamily: '"Spectral", Georgia, serif',
+                  letterSpacing: '-0.01em',
+                  background: 'linear-gradient(135deg, #8B4513 0%, #A0522D 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  lineHeight: 1.2,
+                }}
+              >
+                Homa Booking
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: '#6B5B47',
+                  fontWeight: 500,
+                  letterSpacing: '0.05em',
+                  display: 'block',
+                  mt: 0.25
+                }}
+              >
+                {isBhadaji && 'Bhadaji Portal'} {isPurohit && 'Purohit Portal'} {!isBhadaji && !isPurohit && 'Admin Dashboard'}
+              </Typography>
+            </Box>
+          </Box>
+
+          <Box sx={{ display: 'flex', gap: 0.5 }}>
+            <Tooltip title="Refresh Data">
+              <IconButton
+                onClick={loadData}
+                sx={{
+                  color: '#6B5B47',
+                  '&:hover': {
+                    background: 'rgba(255, 140, 0, 0.1)',
+                    color: '#FF8C00'
+                  }
+                }}
+              >
+                <Refresh />
+              </IconButton>
+            </Tooltip>
+            {!isBhadaji && !isPurohit && (
+              <Tooltip title="Send Reminders">
+                <IconButton
+                  onClick={handleSendReminders}
+                  sx={{
+                    color: '#6B5B47',
+                    '&:hover': {
+                      background: 'rgba(255, 140, 0, 0.1)',
+                      color: '#FF8C00'
+                    }
+                  }}
+                >
+                  <Notifications />
+                </IconButton>
+              </Tooltip>
+            )}
+            {!isPurohit && (
+              <Tooltip title="Export Data">
+                <IconButton
+                  onClick={handleExportMenuOpen}
+                  sx={{
+                    color: '#6B5B47',
+                    '&:hover': {
+                      background: 'rgba(255, 140, 0, 0.1)',
+                      color: '#FF8C00'
+                    }
+                  }}
+                >
+                  <FileDownload />
+                </IconButton>
+              </Tooltip>
+            )}
+            <Tooltip title="Logout">
+              <IconButton
+                onClick={onLogout}
+                sx={{
+                  color: '#6B5B47',
+                  '&:hover': {
+                    background: 'rgba(239, 83, 80, 0.1)',
+                    color: '#EF5350'
+                  }
+                }}
+              >
+                <Logout />
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Toolbar>
+        <Box
+          sx={{
+            height: '3px',
+            background: 'linear-gradient(90deg, #FF6B00 0%, #FF8C00 50%, #FFA500 100%)',
+          }}
+        />
       </AppBar>
 
-      {/* Export Menu */}
+      {/* Export Menu - Enhanced */}
       <Menu
         anchorEl={exportMenuAnchor}
         open={Boolean(exportMenuAnchor)}
         onClose={handleExportMenuClose}
+        PaperProps={{
+          sx: {
+            borderRadius: '12px',
+            mt: 1,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            border: '1px solid rgba(139, 69, 19, 0.08)',
+            minWidth: '180px'
+          }
+        }}
       >
-        <MenuItem onClick={handleExportExcel}>Export to Excel</MenuItem>
-        <MenuItem onClick={handleExportPDF}>Export to PDF</MenuItem>
+        <MenuItem
+          onClick={handleExportExcel}
+          sx={{
+            py: 1.5,
+            px: 2.5,
+            fontWeight: 500,
+            gap: 1.5,
+            '&:hover': {
+              backgroundColor: 'rgba(255, 140, 0, 0.08)'
+            }
+          }}
+        >
+          <FileDownload fontSize="small" sx={{ color: '#FF8C00' }} />
+          Export to Excel
+        </MenuItem>
+        <MenuItem
+          onClick={handleExportPDF}
+          sx={{
+            py: 1.5,
+            px: 2.5,
+            fontWeight: 500,
+            gap: 1.5,
+            '&:hover': {
+              backgroundColor: 'rgba(255, 140, 0, 0.08)'
+            }
+          }}
+        >
+          <FileDownload fontSize="small" sx={{ color: '#FF8C00' }} />
+          Export to PDF
+        </MenuItem>
       </Menu>
 
       {/* Main Content */}
-      <Container maxWidth="xl" sx={{ mt: 2, mb: 4 }}>
-        {/* Tabs */}
-        <Box sx={{
-          borderBottom: 1,
-          borderColor: 'divider',
-          mb: 2,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: { xs: 'wrap', sm: 'nowrap' }
-        }}>
-          <Tabs
-            value={currentTab}
-            onChange={handleTabChange}
-            variant="scrollable"
-            scrollButtons="auto"
-            sx={{
-              minHeight: { xs: 48, sm: 48 },
-              '& .MuiTab-root': {
-                minWidth: { xs: 'auto', sm: 120 },
-                px: { xs: 1, sm: 2 }
-              }
-            }}
-          >
-            <Tab icon={<CalendarMonth />} label="Calendar" iconPosition="start" />
-            <Tab icon={<List />} label="Bookings" iconPosition="start" />
-            {!isPurohit && <Tab icon={<Assessment />} label="Reports" iconPosition="start" />}
-          </Tabs>
-          {currentTab === 0 && (
-            <Tooltip title="Show Tithi, Nakshatra, Vāra details on calendar">
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={showPanchanga}
-                    onChange={(e) => setShowPanchanga(e.target.checked)}
-                    color="primary"
-                    size="small"
-                  />
+      <Container maxWidth="xl" sx={{ mt: 4, mb: 8, px: { xs: 2, sm: 3 } }}>
+        {/* Tabs - Enhanced Design */}
+        <Box
+          sx={{
+            background: 'white',
+            borderRadius: '16px',
+            border: '1px solid rgba(139, 69, 19, 0.08)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+            mb: 3,
+            overflow: 'hidden'
+          }}
+        >
+          <Box sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: { xs: 'wrap', sm: 'nowrap' },
+            px: 2,
+            py: 1
+          }}>
+            <Tabs
+              value={currentTab}
+              onChange={handleTabChange}
+              variant="scrollable"
+              scrollButtons="auto"
+              sx={{
+                '& .MuiTab-root': {
+                  minHeight: '56px',
+                  px: 3,
+                  gap: 1
                 }
-                label={<Typography variant="body2" sx={{ display: { xs: 'none', sm: 'block' } }}>Panchanga</Typography>}
-                sx={{ mr: { xs: 1, sm: 2 }, ml: { xs: 'auto', sm: 0 } }}
-              />
-            </Tooltip>
-          )}
+              }}
+            >
+              <Tab icon={<CalendarMonth />} label="Calendar" iconPosition="start" />
+              <Tab icon={<List />} label="Bookings" iconPosition="start" />
+              {!isPurohit && <Tab icon={<Assessment />} label="Reports" iconPosition="start" />}
+            </Tabs>
+            {currentTab === 0 && (
+              <Tooltip title="Show Tithi, Nakshatra, Vāra details on calendar">
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={showPanchanga}
+                      onChange={(e) => setShowPanchanga(e.target.checked)}
+                      color="secondary"
+                      size="small"
+                    />
+                  }
+                  label={
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        display: { xs: 'none', sm: 'block' },
+                        fontWeight: 600,
+                        color: '#6B5B47'
+                      }}
+                    >
+                      Panchanga
+                    </Typography>
+                  }
+                  sx={{ mr: 2, ml: { xs: 'auto', sm: 2 } }}
+                />
+              </Tooltip>
+            )}
+          </Box>
         </Box>
 
-        {/* Tab Panels */}
-        {currentTab === 0 && (
-          <Grid container spacing={2}>
-            <Grid item xs={12}>
-              <BookingCalendar
-                bookings={bookings}
-                onDateSelect={handleDateSelect}
-                selectedDate={selectedDate}
-                showPanchanga={showPanchanga}
-              />
-            </Grid>
-          </Grid>
-        )}
+        {/* Tab Panels - Enhanced with better spacing */}
+        <Box sx={{ position: 'relative' }}>
+          {currentTab === 0 && (
+            <Box
+              sx={{
+                animation: 'fadeIn 0.4s ease-out',
+                '@keyframes fadeIn': {
+                  from: { opacity: 0, transform: 'translateY(10px)' },
+                  to: { opacity: 1, transform: 'translateY(0)' }
+                }
+              }}
+            >
+              <Grid container spacing={3}>
+                <Grid item xs={12}>
+                  <Box sx={{
+                    background: 'white',
+                    borderRadius: '16px',
+                    border: '1px solid rgba(139, 69, 19, 0.08)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                    p: { xs: 2, sm: 3 },
+                    overflow: 'hidden'
+                  }}>
+                    <BookingCalendar
+                      bookings={bookings}
+                      onDateSelect={handleDateSelect}
+                      selectedDate={selectedDate}
+                      showPanchanga={showPanchanga}
+                    />
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+          )}
 
-        {currentTab === 1 && (
-          <BookingList
-            bookings={bookings}
-            purohits={purohits}
-            onEdit={handleEditBooking}
-            onDelete={handleDeleteBooking}
-            onView={handleViewBooking}
-            userRole={userRole}
-            onUpdatePurohitCharges={handleUpdatePurohitCharges}
-            onMarkComplete={handleMarkComplete}
-            onUpdatePaymentReceivedBy={handleUpdatePaymentReceivedBy}
-          />
-        )}
+          {currentTab === 1 && (
+            <Box
+              sx={{
+                animation: 'fadeIn 0.4s ease-out',
+                '@keyframes fadeIn': {
+                  from: { opacity: 0, transform: 'translateY(10px)' },
+                  to: { opacity: 1, transform: 'translateY(0)' }
+                }
+              }}
+            >
+              <Box sx={{
+                background: 'white',
+                borderRadius: '16px',
+                border: '1px solid rgba(139, 69, 19, 0.08)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                overflow: 'hidden'
+              }}>
+                <BookingList
+                  bookings={bookings}
+                  purohits={purohits}
+                  onEdit={handleEditBooking}
+                  onDelete={handleDeleteBooking}
+                  onView={handleViewBooking}
+                  userRole={userRole}
+                  onUpdatePurohitCharges={handleUpdatePurohitCharges}
+                  onMarkComplete={handleMarkComplete}
+                  onUpdatePaymentReceivedBy={handleUpdatePaymentReceivedBy}
+                />
+              </Box>
+            </Box>
+          )}
 
-        {currentTab === 2 && !isPurohit && (
-          <Reports bookings={bookings} purohits={purohits} userRole={userRole} />
-        )}
+          {currentTab === 2 && !isPurohit && (
+            <Box
+              sx={{
+                animation: 'fadeIn 0.4s ease-out',
+                '@keyframes fadeIn': {
+                  from: { opacity: 0, transform: 'translateY(10px)' },
+                  to: { opacity: 1, transform: 'translateY(0)' }
+                }
+              }}
+            >
+              <Box sx={{
+                background: 'white',
+                borderRadius: '16px',
+                border: '1px solid rgba(139, 69, 19, 0.08)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                p: { xs: 2, sm: 3 }
+              }}>
+                <Reports bookings={bookings} purohits={purohits} userRole={userRole} />
+              </Box>
+            </Box>
+          )}
+        </Box>
       </Container>
 
-      {/* Floating Action Button - Only for Admin */}
+      {/* Floating Action Button - Enhanced */}
       {!isBhadaji && !isPurohit && (
         <Fab
           color="primary"
           aria-label="add"
-          sx={{ position: 'fixed', bottom: 24, right: 24 }}
+          sx={{
+            position: 'fixed',
+            bottom: 32,
+            right: 32,
+            width: 64,
+            height: 64,
+            background: 'linear-gradient(135deg, #FF6B00 0%, #FF8C00 100%)',
+            boxShadow: '0 8px 24px rgba(255, 140, 0, 0.4)',
+            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #FF8C00 0%, #FFA500 100%)',
+              boxShadow: '0 12px 32px rgba(255, 140, 0, 0.5)',
+              transform: 'scale(1.1) rotate(90deg)',
+            },
+            '&:active': {
+              transform: 'scale(0.95) rotate(90deg)',
+            },
+            animation: 'pulse 2s ease-in-out infinite',
+            '@keyframes pulse': {
+              '0%, 100%': {
+                boxShadow: '0 8px 24px rgba(255, 140, 0, 0.4)',
+              },
+              '50%': {
+                boxShadow: '0 8px 32px rgba(255, 140, 0, 0.6)',
+              }
+            }
+          }}
           onClick={handleNewBooking}
         >
-          <Add />
+          <Add sx={{ fontSize: 32 }} />
         </Fab>
       )}
 
