@@ -22,7 +22,11 @@ import {
   Fab,
   Switch,
   FormControlLabel,
-  Tooltip
+  Tooltip,
+  TextField,
+  InputAdornment,
+  Chip,
+  Divider
 } from '@mui/material';
 import {
   Add,
@@ -32,7 +36,15 @@ import {
   FileDownload,
   Refresh,
   Notifications,
-  Logout
+  Logout,
+  AutoFixHigh,
+  School,
+  Settings,
+  Visibility,
+  VisibilityOff,
+  CheckCircle,
+  Cancel,
+  PersonAdd
 } from '@mui/icons-material';
 
 import BookingCalendar from '../components/BookingCalendar';
@@ -42,6 +54,9 @@ import Reports from '../components/Reports';
 import BookingDetails from '../components/BookingDetails';
 import DateBookingsDialog from '../components/DateBookingsDialog';
 import Footer from '../components/Footer';
+import KleshaKriyaTab from '../components/KleshaKriyaTab';
+import ClassEnquiryTab from '../components/ClassEnquiryTab';
+import WalkInTab from '../components/WalkInTab';
 
 import {
   getAllBookings,
@@ -51,6 +66,8 @@ import {
   getAllPurohits,
   getUpcomingBookingsForReminder
 } from '../services/bookingService';
+import { saveSettings, loadSettings } from '../services/settingsService';
+import { testMsg91Connection, refreshMsg91Config } from '../services/msg91Service';
 import {
   exportToExcel,
   exportToPDF,
@@ -82,6 +99,12 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, bookingId: null });
   const [showPanchanga, setShowPanchanga] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsForm, setSettingsForm] = useState({ msg91AuthKey: '', whatsappNumber: '919632691895' });
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsTesting, setSettingsTesting] = useState(false);
+  const [settingsTestResult, setSettingsTestResult] = useState(null);
+  const [showAuthKey, setShowAuthKey] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -334,6 +357,52 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
     }
   };
 
+  const handleOpenSettings = async () => {
+    const current = await loadSettings();
+    setSettingsForm({
+      msg91AuthKey: current.msg91AuthKey || '',
+      whatsappNumber: current.whatsappNumber || '919632691895'
+    });
+    setSettingsTestResult(null);
+    setSettingsOpen(true);
+  };
+
+  const handleSaveSettingsForm = async () => {
+    setSettingsSaving(true);
+    try {
+      await saveSettings({
+        msg91AuthKey: settingsForm.msg91AuthKey.trim(),
+        whatsappNumber: settingsForm.whatsappNumber.trim()
+      });
+      await refreshMsg91Config();
+      showSnackbar('Settings saved successfully', 'success');
+      setSettingsOpen(false);
+    } catch (err) {
+      showSnackbar('Error saving settings', 'error');
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
+  const handleTestMsg91 = async () => {
+    setSettingsTesting(true);
+    setSettingsTestResult(null);
+    try {
+      // Temporarily save so the test picks up the new key
+      await saveSettings({
+        msg91AuthKey: settingsForm.msg91AuthKey.trim(),
+        whatsappNumber: settingsForm.whatsappNumber.trim()
+      });
+      await refreshMsg91Config();
+      const result = await testMsg91Connection();
+      setSettingsTestResult(result);
+    } catch (err) {
+      setSettingsTestResult({ configured: false, error: err.message });
+    } finally {
+      setSettingsTesting(false);
+    }
+  };
+
   if (loading) {
     return (
       <Box
@@ -484,6 +553,22 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
                 </IconButton>
               </Tooltip>
             )}
+            {!isBhadaji && !isPurohit && (
+              <Tooltip title="MSG91 / WhatsApp Settings">
+                <IconButton
+                  onClick={handleOpenSettings}
+                  sx={{
+                    color: '#6B5B47',
+                    '&:hover': {
+                      background: 'rgba(255, 140, 0, 0.1)',
+                      color: '#FF8C00'
+                    }
+                  }}
+                >
+                  <Settings />
+                </IconButton>
+              </Tooltip>
+            )}
             <Tooltip title="Logout">
               <IconButton
                 onClick={onLogout}
@@ -592,6 +677,9 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
               <Tab icon={<CalendarMonth />} label="Calendar" iconPosition="start" />
               <Tab icon={<List />} label="Bookings" iconPosition="start" />
               {!isPurohit && <Tab icon={<Assessment />} label="Reports" iconPosition="start" />}
+              {!isPurohit && !isBhadaji && <Tab icon={<AutoFixHigh />} label="Klesha Nashana Kriya" iconPosition="start" />}
+              {!isPurohit && !isBhadaji && <Tab icon={<School />} label="Class Enquiries" iconPosition="start" />}
+              {!isPurohit && <Tab icon={<PersonAdd />} label="Walk-in Entry" iconPosition="start" />}
             </Tabs>
             {currentTab === 0 && (
               <Tooltip title="Show Tithi, Nakshatra, Vāra details on calendar">
@@ -710,6 +798,45 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
               </Box>
             </Box>
           )}
+
+          {currentTab === 4 && !isPurohit && !isBhadaji && (
+            <Box sx={{ animation: 'fadeIn 0.4s ease-out', '@keyframes fadeIn': { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'translateY(0)' } } }}>
+              <Box sx={{ background: 'white', borderRadius: '16px', border: '1px solid rgba(26,35,126,0.08)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', p: { xs: 2, sm: 3 } }}>
+                <ClassEnquiryTab />
+              </Box>
+            </Box>
+          )}
+
+          {currentTab === 3 && !isPurohit && !isBhadaji && (
+            <Box
+              sx={{
+                animation: 'fadeIn 0.4s ease-out',
+                '@keyframes fadeIn': {
+                  from: { opacity: 0, transform: 'translateY(10px)' },
+                  to: { opacity: 1, transform: 'translateY(0)' }
+                }
+              }}
+            >
+              <Box sx={{
+                background: 'white',
+                borderRadius: '16px',
+                border: '1px solid rgba(139, 69, 19, 0.08)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
+                p: { xs: 2, sm: 3 }
+              }}>
+                <KleshaKriyaTab />
+              </Box>
+            </Box>
+          )}
+
+          {/* Walk-in Entry: tab 5 for admin, tab 3 for Bhadaji */}
+          {currentTab === (isBhadaji ? 3 : 5) && !isPurohit && (
+            <Box sx={{ animation: 'fadeIn 0.4s ease-out', '@keyframes fadeIn': { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'translateY(0)' } } }}>
+              <Box sx={{ background: 'white', borderRadius: '16px', border: '1px solid rgba(139, 69, 19, 0.08)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', p: { xs: 2, sm: 3 } }}>
+                <WalkInTab />
+              </Box>
+            </Box>
+          )}
         </Box>
       </Container>
 
@@ -809,6 +936,132 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
           {snackbar.message}
         </Alert>
       </Snackbar>
+
+      {/* MSG91 Settings Dialog */}
+      <Dialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '16px' } }}
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Settings sx={{ color: '#FF8C00' }} />
+            <Typography variant="h6" fontWeight={700}>WhatsApp / MSG91 Settings</Typography>
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+            Enter your MSG91 auth key to enable automatic WhatsApp messages.
+          </Typography>
+        </DialogTitle>
+        <Divider />
+        <DialogContent sx={{ pt: 3 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+            <TextField
+              label="MSG91 Auth Key"
+              fullWidth
+              type={showAuthKey ? 'text' : 'password'}
+              value={settingsForm.msg91AuthKey}
+              onChange={e => setSettingsForm(f => ({ ...f, msg91AuthKey: e.target.value }))}
+              placeholder="Enter your MSG91 auth key"
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={() => setShowAuthKey(v => !v)} edge="end" size="small">
+                      {showAuthKey ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                )
+              }}
+              helperText="Get your auth key from msg91.com → API → Auth Key"
+            />
+            <TextField
+              label="WhatsApp Sender Number"
+              fullWidth
+              value={settingsForm.whatsappNumber}
+              onChange={e => setSettingsForm(f => ({ ...f, whatsappNumber: e.target.value }))}
+              placeholder="919XXXXXXXXX"
+              helperText="Your MSG91 integrated WhatsApp number with country code (e.g. 919632691895)"
+            />
+
+            {/* Test result */}
+            {settingsTestResult && (
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: '10px',
+                  background: settingsTestResult.configured
+                    ? 'rgba(46, 125, 50, 0.08)'
+                    : 'rgba(211, 47, 47, 0.08)',
+                  border: `1px solid ${settingsTestResult.configured ? '#4caf50' : '#f44336'}`,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 0.5
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {settingsTestResult.configured
+                    ? <CheckCircle sx={{ color: '#4caf50', fontSize: 20 }} />
+                    : <Cancel sx={{ color: '#f44336', fontSize: 20 }} />
+                  }
+                  <Typography variant="body2" fontWeight={600}
+                    color={settingsTestResult.configured ? 'success.main' : 'error.main'}>
+                    {settingsTestResult.configured ? 'MSG91 is configured correctly' : 'MSG91 not configured'}
+                  </Typography>
+                </Box>
+                {settingsTestResult.configured && (
+                  <>
+                    <Typography variant="caption" color="text.secondary">
+                      Auth Key: <strong>{settingsTestResult.authKey}</strong>
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      WhatsApp Number: <strong>{settingsTestResult.whatsappNumber}</strong>
+                    </Typography>
+                  </>
+                )}
+                {!settingsTestResult.configured && (
+                  <Typography variant="caption" color="text.secondary">
+                    Please enter a valid MSG91 auth key above and save.
+                  </Typography>
+                )}
+              </Box>
+            )}
+
+            <Box sx={{ p: 2, borderRadius: '10px', background: 'rgba(255,140,0,0.06)', border: '1px solid rgba(255,140,0,0.2)' }}>
+              <Typography variant="caption" color="text.secondary">
+                <strong>How to get your MSG91 Auth Key:</strong><br />
+                1. Login at <strong>msg91.com</strong><br />
+                2. Go to <strong>API</strong> → <strong>Auth Key</strong><br />
+                3. Copy the key and paste it above<br />
+                4. Make sure your WhatsApp number is integrated in MSG91 dashboard
+              </Typography>
+            </Box>
+          </Box>
+        </DialogContent>
+        <Divider />
+        <DialogActions sx={{ px: 3, py: 2, gap: 1 }}>
+          <Button
+            onClick={handleTestMsg91}
+            disabled={settingsTesting || !settingsForm.msg91AuthKey}
+            variant="outlined"
+            startIcon={settingsTesting ? <CircularProgress size={16} /> : <CheckCircle />}
+            sx={{ borderColor: '#FF8C00', color: '#FF8C00', '&:hover': { borderColor: '#FF6B00', background: 'rgba(255,140,0,0.06)' } }}
+          >
+            {settingsTesting ? 'Testing...' : 'Test Connection'}
+          </Button>
+          <Box sx={{ flex: 1 }} />
+          <Button onClick={() => setSettingsOpen(false)} color="inherit">Cancel</Button>
+          <Button
+            onClick={handleSaveSettingsForm}
+            disabled={settingsSaving}
+            variant="contained"
+            startIcon={settingsSaving ? <CircularProgress size={16} sx={{ color: 'white' }} /> : null}
+            sx={{ background: 'linear-gradient(135deg, #FF6B00 0%, #FF8C00 100%)', '&:hover': { background: 'linear-gradient(135deg, #FF8C00 0%, #FFA500 100%)' } }}
+          >
+            {settingsSaving ? 'Saving...' : 'Save Settings'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Footer */}
       <Footer />

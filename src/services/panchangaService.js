@@ -1,52 +1,76 @@
 // Panchanga (Hindu Calendar) Service - Using accurate astronomical calculations
 // Based on @ishubhamx/panchangam-js - Verified against Drik Panchang
 
-import { Panchangam } from '@ishubhamx/panchangam-js';
+import { getPanchangam, Observer } from '@ishubhamx/panchangam-js';
 
 // Default location: Belagavi, Karnataka (Astro Vastu Shri V M Joshi location)
 // Accurate panchanga calculations for Belagavi region
 const DEFAULT_LOCATION = {
   latitude: 15.8497,  // Belagavi latitude
   longitude: 74.4977, // Belagavi longitude
-  timezone: 'Asia/Kolkata'
+  elevation: 751      // Belagavi elevation in meters (approximately 751m)
+};
+
+// Create Observer for Belagavi
+const createObserver = (location = DEFAULT_LOCATION) => {
+  return new Observer(
+    location.latitude,
+    location.longitude,
+    location.elevation || 0
+  );
 };
 
 // Get accurate Panchanga for a date using astronomical calculations
 export const getPanchanga = (date, location = DEFAULT_LOCATION) => {
   try {
     const dateObj = date instanceof Date ? date : new Date(date);
+    const observer = createObserver(location);
 
-    // Create Panchangam instance with location
-    const panchanga = new Panchangam({
-      date: dateObj,
-      latitude: location.latitude,
-      longitude: location.longitude,
-      timezone: location.timezone || DEFAULT_LOCATION.timezone
-    });
+    // Get panchanga data using the library
+    const panchangaData = getPanchangam(dateObj, observer);
 
-    // Get all panchanga elements
-    const panchangaData = panchanga.getPanchangam();
+    // Extract current tithi from transitions
+    const currentTithi = panchangaData.tithiTransitions?.find(t =>
+      t.startTime <= dateObj && t.endTime > dateObj
+    ) || panchangaData.tithiTransitions?.[0];
+
+    // Extract current nakshatra from transitions
+    const currentNakshatra = panchangaData.nakshatraTransitions?.find(n =>
+      n.startTime <= dateObj && n.endTime > dateObj
+    ) || panchangaData.nakshatraTransitions?.[0];
+
+    // Extract current yoga from transitions
+    const currentYoga = panchangaData.yogaTransitions?.find(y =>
+      y.startTime <= dateObj && y.endTime > dateObj
+    ) || panchangaData.yogaTransitions?.[0];
+
+    // Determine paksha based on tithi index
+    const tithiIndex = currentTithi?.index || 0;
+    const paksha = tithiIndex <= 14 ? 'Shukla Paksha' : 'Krishna Paksha';
+
+    // Get vara - use JavaScript's getDay() which is reliable
+    // Sunday=0, Monday=1, Tuesday=2, Wednesday=3, Thursday=4, Friday=5, Saturday=6
+    const varaIndex = dateObj.getDay();
 
     return {
       vara: {
-        name: panchangaData.vara || getVaraName(dateObj.getDay()),
-        deity: getVaraDeity(dateObj.getDay()),
-        short: getVaraShort(dateObj.getDay())
+        name: getVaraName(varaIndex),
+        deity: getVaraDeity(varaIndex),
+        short: getVaraShort(varaIndex)
       },
       tithi: {
-        name: panchangaData.tithi?.name || 'Unknown',
-        paksha: panchangaData.paksha || (panchangaData.tithi?.index < 15 ? 'Shukla Paksha' : 'Krishna Paksha'),
-        index: panchangaData.tithi?.index || 0,
-        endTime: panchangaData.tithi?.endTime
+        name: currentTithi?.name || 'Unknown',
+        paksha: paksha,
+        index: tithiIndex,
+        endTime: currentTithi?.endTime
       },
       nakshatra: {
-        name: panchangaData.nakshatra?.name || 'Unknown',
-        deity: panchangaData.nakshatra?.deity || '',
-        endTime: panchangaData.nakshatra?.endTime
+        name: currentNakshatra?.name || 'Unknown',
+        deity: '', // Library doesn't provide deity info
+        endTime: currentNakshatra?.endTime
       },
-      yoga: panchangaData.yoga?.name || 'Unknown',
-      karana: panchangaData.karana?.name || 'Unknown',
-      rashi: panchangaData.rashi || {},
+      yoga: currentYoga?.name || 'Unknown',
+      karana: panchangaData.karana || 'Unknown',
       sunrise: panchangaData.sunrise,
       sunset: panchangaData.sunset,
       moonrise: panchangaData.moonrise,

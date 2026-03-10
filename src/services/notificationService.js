@@ -4,7 +4,9 @@ import {
   sendBookingConfirmation as msg91SendConfirmation,
   sendBookingReminder as msg91SendReminder,
   sendBulkWhatsAppReminders as msg91SendBulkReminders,
-  sendWhatsAppViaWeb
+  sendWhatsAppViaWeb,
+  sendConfirmationTemplate,
+  sendReminderTemplate
 } from './msg91Service';
 
 // MSG91 WhatsApp Integration is now active
@@ -59,67 +61,58 @@ With divine blessings,
 🌐 astrovastushrivmjoshi.com`;
 };
 
-// Send WhatsApp message using MSG91 API
+// Send WhatsApp message using MSG91 API (auth key loaded from Firestore)
 export const sendWhatsAppMessage = async (phone, message, booking = null) => {
   try {
-    // If MSG91 is configured and we have booking data, use API
-    if (booking && process.env.REACT_APP_MSG91_AUTH_KEY &&
-        process.env.REACT_APP_MSG91_AUTH_KEY !== 'your_msg91_auth_key_here') {
-
-      // Determine which template to use based on message content
+    if (booking) {
+      let result;
       if (message.includes('successfully booked')) {
-        return await msg91SendConfirmation(booking);
-      } else if (message.includes('reminder')) {
-        return await msg91SendReminder(booking);
+        result = await sendConfirmationTemplate(booking);
+      } else {
+        result = await sendReminderTemplate(booking);
+      }
+
+      // If template sent successfully, done
+      if (result && result.success) {
+        return result;
       }
     }
 
-    // Fallback to WhatsApp Web (manual sending)
+    // Fallback to WhatsApp Web if template fails or not approved yet
     sendWhatsAppViaWeb(phone, message);
     return { success: true, method: 'web' };
   } catch (error) {
     console.error('Error sending WhatsApp:', error);
-    // Fallback to web if API fails
     sendWhatsAppViaWeb(phone, message);
     return { success: true, method: 'web-fallback' };
   }
 };
 
-// Send bulk WhatsApp reminders using MSG91 API
+// Send bulk WhatsApp reminders using MSG91 API (auth key loaded from Firestore)
 export const sendBulkWhatsAppReminders = async (bookings) => {
   try {
-    // If MSG91 is configured, use API for bulk sending
-    if (process.env.REACT_APP_MSG91_AUTH_KEY &&
-        process.env.REACT_APP_MSG91_AUTH_KEY !== 'your_msg91_auth_key_here') {
+    const results = await msg91SendBulkReminders(bookings);
 
-      console.log('Sending bulk reminders via MSG91 API...');
-      const results = await msg91SendBulkReminders(bookings);
-
-      const successCount = results.filter(r => r.success).length;
-      const failedCount = results.filter(r => !r.success).length;
-
-      console.log(`Bulk send complete: ${successCount} sent, ${failedCount} failed`);
-      return {
-        success: true,
-        total: bookings.length,
-        sent: successCount,
-        failed: failedCount,
-        results
-      };
+    // If all fell back to web, open WhatsApp Web tabs
+    const allFallback = results.every(r => r.fallback);
+    if (allFallback) {
+      bookings.forEach((booking, index) => {
+        setTimeout(() => {
+          const message = generateReminderMessage(booking);
+          sendWhatsAppViaWeb(booking.clientPhone, message);
+        }, index * 1000);
+      });
+      return { success: true, method: 'web', total: bookings.length };
     }
 
-    // Fallback to WhatsApp Web (opens multiple tabs)
-    bookings.forEach((booking, index) => {
-      setTimeout(() => {
-        const message = generateReminderMessage(booking);
-        sendWhatsAppViaWeb(booking.clientPhone, message);
-      }, index * 1000); // 1 second delay between each
-    });
-
+    const successCount = results.filter(r => r.success).length;
+    const failedCount = results.filter(r => !r.success).length;
     return {
       success: true,
-      method: 'web',
-      total: bookings.length
+      total: bookings.length,
+      sent: successCount,
+      failed: failedCount,
+      results
     };
   } catch (error) {
     console.error('Error sending bulk reminders:', error);

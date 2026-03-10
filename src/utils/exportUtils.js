@@ -270,6 +270,129 @@ export const exportMonthlyReportToPDF = (bookings, purohitStats, stats, monthYea
   doc.save(`monthly_report_${monthYear.replace(' ', '_')}.pdf`);
 };
 
+// ── Klesha Nashana Kriya exports ─────────────────────────────────────────────
+
+const formatAmavasyaDate = (iso) => {
+  if (!iso) return '—';
+  return format(new Date(iso), 'dd MMM yyyy');
+};
+
+export const exportKleshaToExcel = (bookings, filename = 'klesha_bookings') => {
+  const data = bookings.map((b, i) => ({
+    '#': i + 1,
+    'Client Name': b.clientName || '',
+    'Phone': b.phone || '',
+    'Amavasya Date': formatAmavasyaDate(b.amavasyaDate),
+    'Payment Status': b.paymentStatus === 'paid' ? 'Paid' : 'Balance',
+    'Payment Mode': b.paymentMode === 'phonePe' ? 'PhonePe' : 'Cash',
+    'Total Amount (₹)': b.totalAmount || 0,
+    'Paid Amount (₹)': b.paidAmount || 0,
+    'Balance Amount (₹)': b.balanceAmount || 0,
+    'Note': b.note || ''
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  worksheet['!cols'] = [
+    { wch: 4 }, { wch: 22 }, { wch: 13 }, { wch: 18 },
+    { wch: 14 }, { wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 16 }, { wch: 30 }
+  ];
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Klesha Bookings');
+  XLSX.writeFile(workbook, `${filename}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+};
+
+export const exportKleshaToPDF = (bookings, title = 'Klesha Nashana Kriya – Bookings', filename = 'klesha_bookings') => {
+  const doc = new jsPDF('l', 'mm', 'a4');
+  doc.setFontSize(16);
+  doc.text(title, 14, 18);
+  doc.setFontSize(9);
+  doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy, hh:mm a')}   |   Total records: ${bookings.length}`, 14, 25);
+
+  const headers = ['#', 'Client Name', 'Phone', 'Amavasya Date', 'Status', 'Mode', 'Total (₹)', 'Paid (₹)', 'Balance (₹)', 'Note'];
+  const rows = bookings.map((b, i) => [
+    i + 1,
+    b.clientName || '',
+    b.phone || '',
+    formatAmavasyaDate(b.amavasyaDate),
+    b.paymentStatus === 'paid' ? 'Paid' : 'Balance',
+    b.paymentMode === 'phonePe' ? 'PhonePe' : 'Cash',
+    b.totalAmount || 0,
+    b.paidAmount || 0,
+    b.balanceAmount || 0,
+    b.note || ''
+  ]);
+
+  doc.autoTable({
+    startY: 30,
+    head: [headers],
+    body: rows,
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [62, 39, 35], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [255, 248, 240] },
+    columnStyles: { 9: { cellWidth: 40 } }
+  });
+
+  doc.save(`${filename}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+};
+
+// ── Class Enquiries exports ───────────────────────────────────────────────────
+
+const COURSE_LABELS = { astrology: 'Astrology', vastu: 'Vastu', both: 'Both' };
+const BATCH_LABELS  = { jan_jun: 'Jan – Jun', jul_dec: 'Jul – Dec', not_decided: 'Not Decided' };
+const STATUS_LABELS = { interested: 'Interested', joined: 'Joined', not_responding: 'Not Responding' };
+
+export const exportEnquiriesToExcel = (enquiries, filename = 'class_enquiries') => {
+  const data = enquiries.map((e, i) => ({
+    '#': i + 1,
+    'Name': e.name || '',
+    'Phone': e.phone || '',
+    'Course': COURSE_LABELS[e.course] || e.course || '',
+    'Batch': BATCH_LABELS[e.batch]   || e.batch  || '',
+    'Status': STATUS_LABELS[e.status] || e.status || '',
+    'Note / Remarks': e.note || ''
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  worksheet['!cols'] = [
+    { wch: 4 }, { wch: 22 }, { wch: 13 }, { wch: 14 },
+    { wch: 14 }, { wch: 16 }, { wch: 35 }
+  ];
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Class Enquiries');
+  XLSX.writeFile(workbook, `${filename}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+};
+
+export const exportEnquiriesToPDF = (enquiries, title = 'Class Enquiries – Astrology & Vastu', filename = 'class_enquiries') => {
+  const doc = new jsPDF('l', 'mm', 'a4');
+  doc.setFontSize(16);
+  doc.text(title, 14, 18);
+  doc.setFontSize(9);
+  doc.text(`Generated: ${format(new Date(), 'dd MMM yyyy, hh:mm a')}   |   Total records: ${enquiries.length}`, 14, 25);
+
+  const headers = ['#', 'Name', 'Phone', 'Course', 'Batch', 'Status', 'Note / Remarks'];
+  const rows = enquiries.map((e, i) => [
+    i + 1,
+    e.name || '',
+    e.phone || '',
+    COURSE_LABELS[e.course] || e.course || '',
+    BATCH_LABELS[e.batch]   || e.batch  || '',
+    STATUS_LABELS[e.status] || e.status || '',
+    e.note || ''
+  ]);
+
+  doc.autoTable({
+    startY: 30,
+    head: [headers],
+    body: rows,
+    styles: { fontSize: 8, cellPadding: 2 },
+    headStyles: { fillColor: [26, 35, 126], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [243, 244, 253] },
+    columnStyles: { 6: { cellWidth: 60 } }
+  });
+
+  doc.save(`${filename}_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+};
+
 // Export single booking details to PDF
 export const exportBookingDetailsPDF = (booking) => {
   const doc = new jsPDF('p', 'mm', 'a4');

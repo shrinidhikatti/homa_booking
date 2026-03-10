@@ -16,7 +16,7 @@ import {
 } from '@mui/icons-material';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, isWithinInterval } from 'date-fns';
 import { BOOKING_START_DATE, BOOKING_END_DATE, BOOKING_STATUS } from '../config/constants';
-import { getPanchangaShort, getSpecialDay } from '../services/panchangaService';
+import { getPanchanga, getPanchangaShort, getSpecialDay } from '../services/panchangaService';
 
 const BookingCalendar = ({ bookings, onDateSelect, selectedDate, showPanchanga }) => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -122,7 +122,7 @@ const BookingCalendar = ({ bookings, onDateSelect, selectedDate, showPanchanga }
           const isSelected = selectedDate && isSameDay(day, selectedDate);
           const isToday = isSameDay(day, new Date());
           const inRange = isDateInRange(day);
-          const panchanga = showPanchanga ? getPanchangaShort(day) : null;
+          const panchanga = showPanchanga ? getPanchanga(day) : null;
           const specialDays = showPanchanga ? getSpecialDay(day) : [];
           const dayOfWeek = day.getDay();
           const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
@@ -191,9 +191,23 @@ const BookingCalendar = ({ bookings, onDateSelect, selectedDate, showPanchanga }
                   )}
                 </Box>
 
-                {/* Panchanga Details */}
+                {/* Panchanga Details - Enhanced */}
                 {showPanchanga && panchanga && (
                   <Box sx={{ mt: 0.5 }}>
+                    {/* Vara (Weekday) in Sanskrit */}
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: 'block',
+                        fontSize: '0.5rem',
+                        color: isSelected ? 'primary.contrastText' : 'secondary.main',
+                        lineHeight: 1.2,
+                        fontWeight: 600
+                      }}
+                    >
+                      {panchanga.vara.name}
+                    </Typography>
+                    {/* Tithi with Paksha */}
                     <Typography
                       variant="caption"
                       sx={{
@@ -203,8 +217,22 @@ const BookingCalendar = ({ bookings, onDateSelect, selectedDate, showPanchanga }
                         lineHeight: 1.2
                       }}
                     >
-                      {panchanga.tithi}
+                      {panchanga.tithi.name}
                     </Typography>
+                    {/* Paksha */}
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: 'block',
+                        fontSize: '0.48rem',
+                        color: isSelected ? 'primary.contrastText' : panchanga.tithi.paksha === 'Shukla Paksha' ? 'success.main' : 'warning.main',
+                        lineHeight: 1.2,
+                        fontStyle: 'italic'
+                      }}
+                    >
+                      {panchanga.tithi.paksha}
+                    </Typography>
+                    {/* Nakshatra */}
                     <Typography
                       variant="caption"
                       sx={{
@@ -214,8 +242,9 @@ const BookingCalendar = ({ bookings, onDateSelect, selectedDate, showPanchanga }
                         lineHeight: 1.2
                       }}
                     >
-                      {panchanga.nakshatra}
+                      {panchanga.nakshatra.name}
                     </Typography>
+                    {/* Special Days */}
                     {specialDays.length > 0 && (
                       <Typography
                         variant="caption"
@@ -224,7 +253,8 @@ const BookingCalendar = ({ bookings, onDateSelect, selectedDate, showPanchanga }
                           fontSize: '0.5rem',
                           color: 'error.main',
                           fontWeight: 'bold',
-                          lineHeight: 1.2
+                          lineHeight: 1.2,
+                          mt: 0.25
                         }}
                       >
                         {specialDays[0]}
