@@ -111,9 +111,17 @@ exports.sendWhatsApp = functions.https.onCall(async (data, context) => {
         'homa_booking_reminder', params
       );
     } else if (type === 'walkin') {
-      // Walk-in welcome — approved template
+      const name = clientName || 'Customer';
+
+      // Message 1: Utility template (opens 24hr session)
       responseData = await sendTemplate(authKey, whatsappNumber, phone,
-        'walkin', [clientName || 'Customer']
+        'walkinfirst', [name]
+      );
+
+      // Message 2: Rich welcome template after 5 seconds
+      await new Promise(r => setTimeout(r, 5000));
+      await sendTemplate(authKey, whatsappNumber, phone,
+        'walkinsecond', []
       );
     } else if (message) {
       // Free-form text (only works within 24hr session window)

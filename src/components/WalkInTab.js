@@ -20,7 +20,8 @@ import {
   TableHead,
   TableRow,
   Tooltip,
-  Paper
+  Paper,
+  TablePagination
 } from '@mui/material';
 import {
   Add,
@@ -44,6 +45,8 @@ const WalkInTab = () => {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [page, setPage] = useState(0);
+  const rowsPerPage = 10;
 
   const loadEntries = useCallback(async () => {
     setLoading(true);
@@ -84,6 +87,7 @@ const WalkInTab = () => {
       });
 
       setEntries(prev => [entry, ...prev]);
+      setPage(0);
       setDialogOpen(false);
       setForm(emptyForm);
 
@@ -188,7 +192,7 @@ const WalkInTab = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {entries.map((entry) => (
+              {entries.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((entry) => (
                 <TableRow key={entry.id} hover>
                   <TableCell sx={{ fontSize: '0.82rem', color: '#616161', whiteSpace: 'nowrap' }}>
                     {formatDateTime(entry.createdAt)}
@@ -214,6 +218,14 @@ const WalkInTab = () => {
               ))}
             </TableBody>
           </Table>
+          <TablePagination
+            component="div"
+            count={entries.length}
+            page={page}
+            onPageChange={(e, newPage) => setPage(newPage)}
+            rowsPerPage={rowsPerPage}
+            rowsPerPageOptions={[10]}
+          />
         </TableContainer>
       )}
 
