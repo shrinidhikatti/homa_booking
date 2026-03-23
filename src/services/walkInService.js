@@ -63,11 +63,38 @@ export const getIncomingMessage = async (walkInId) => {
   );
   const snap = await getDocs(q);
   if (snap.empty) return null;
-  // Sort in code to avoid composite index requirement
   const sorted = snap.docs
     .map(d => ({ id: d.id, ...d.data() }))
     .sort((a, b) => (b.receivedAt?.seconds || 0) - (a.receivedAt?.seconds || 0));
   return sorted[0];
+};
+
+// Get full chat history for a walk-in entry (both incoming and outgoing)
+export const getChatHistory = async (walkInId) => {
+  const q = query(
+    collection(db, 'incomingMessages'),
+    where('walkInId', '==', walkInId)
+  );
+  const snap = await getDocs(q);
+  if (snap.empty) return [];
+  return snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => {
+      const aTime = a.receivedAt?.seconds || a.sentAt?.seconds || 0;
+      const bTime = b.receivedAt?.seconds || b.sentAt?.seconds || 0;
+      return aTime - bTime;
+    });
+};
+
+// Store outgoing reply in chat history
+export const storeOutgoingMessage = async (walkInId, text) => {
+  await addDoc(collection(db, 'incomingMessages'), {
+    walkInId,
+    text,
+    direction: 'outgoing',
+    sentAt: Timestamp.now(),
+    receivedAt: Timestamp.now()
+  });
 };
 
 // Mark message as replied

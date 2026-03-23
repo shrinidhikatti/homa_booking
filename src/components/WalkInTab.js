@@ -38,7 +38,8 @@ import {
   createWalkIn,
   updateWalkInWhatsappStatus,
   subscribeWalkIns,
-  getIncomingMessage,
+  getChatHistory,
+  storeOutgoingMessage,
   markAsReplied
 } from '../services/walkInService';
 import { sendWalkInWelcome, sendWhatsAppViaWeb, sendWhatsAppReply } from '../services/msg91Service';
@@ -56,11 +57,13 @@ const WalkInTab = ({ office }) => {
   const [page, setPage] = useState(0);
   const rowsPerPage = 10;
 
-  // Reply dialog state
+  // Chat dialog state
   const [replyDialog, setReplyDialog] = useState({ open: false, entry: null, incomingMsg: null });
+  const [chatHistory, setChatHistory] = useState([]);
   const [replyText, setReplyText] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
   const [loadingMsg, setLoadingMsg] = useState(false);
+  const chatEndRef = React.useRef(null);
 
   // Real-time listener
   useEffect(() => {
@@ -120,11 +123,16 @@ const WalkInTab = ({ office }) => {
 
   const handleOpenReply = async (entry) => {
     setReplyText('');
+    setChatHistory([]);
     setReplyDialog({ open: true, entry, incomingMsg: null });
     setLoadingMsg(true);
     try {
-      const msg = await getIncomingMessage(entry.id);
-      setReplyDialog(prev => ({ ...prev, incomingMsg: msg }));
+      const history = await getChatHistory(entry.id);
+      setChatHistory(history);
+      // keep latest incoming msg reference for markAsReplied
+      const lastIncoming = [...history].reverse().find(m => m.direction !== 'outgoing');
+      setReplyDialog(prev => ({ ...prev, incomingMsg: lastIncoming || null }));
+      setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
     } catch (e) {
       console.error(e);
     } finally {
@@ -138,14 +146,18 @@ const WalkInTab = ({ office }) => {
     try {
       const result = await sendWhatsAppReply(replyDialog.entry.mobileNumber, replyText.trim());
       if (result?.success) {
-        // Mark message as replied in Firestore
+        // Store outgoing message in chat history
+        await storeOutgoingMessage(replyDialog.entry.id, replyText.trim());
         if (replyDialog.incomingMsg) {
           await markAsReplied(replyDialog.incomingMsg.id, replyText.trim());
         }
         await updateWalkInWhatsappStatus(replyDialog.entry.id, 'replied');
-        setSnackbar({ open: true, message: 'Reply sent successfully!', severity: 'success' });
-        setReplyDialog({ open: false, entry: null, incomingMsg: null });
+        // Refresh chat
+        const history = await getChatHistory(replyDialog.entry.id);
+        setChatHistory(history);
         setReplyText('');
+        setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+        setSnackbar({ open: true, message: 'Reply sent!', severity: 'success' });
       } else {
         setSnackbar({ open: true, message: 'Failed to send reply. Try WhatsApp Web instead.', severity: 'error' });
       }
@@ -171,7 +183,13 @@ const WalkInTab = ({ office }) => {
           icon={<MarkChatRead />}
           label="Replied"
           size="small"
-          sx={{ backgroundColor: '#1565C0', color: '#fff', '& .MuiChip-icon': { color: '#fff' } }}
+          clickable
+          onClick={() => handleOpenReply(entry)}
+          sx={{
+            backgroundColor: '#1565C0', color: '#fff', cursor: 'pointer',
+            '& .MuiChip-icon': { color: '#fff' },
+            '&:hover': { backgroundColor: '#0D47A1' }
+          }}
         />
       );
     }
@@ -378,46 +396,69 @@ const WalkInTab = ({ office }) => {
             <Close />
           </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ pt: 1 }}>
-          {/* Customer's message */}
-          <Typography variant="caption" sx={{ color: '#757575', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Customer's Message
-          </Typography>
+        <DialogContent sx={{ pt: 1, pb: 1, display: 'flex', flexDirection: 'column', height: 420 }}>
+          {/* Chat history */}
           <Box sx={{
-            mt: 0.5,
-            mb: 2.5,
-            p: 1.5,
-            backgroundColor: '#F1F8E9',
+            flex: 1,
+            overflowY: 'auto',
+            backgroundColor: '#ECE5DD',
             borderRadius: '10px',
-            border: '1px solid #C5E1A5',
-            minHeight: 48
+            p: 1.5,
+            mb: 1.5,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1
           }}>
             {loadingMsg ? (
-              <CircularProgress size={18} sx={{ color: '#4CAF50' }} />
-            ) : (
-              <Typography variant="body2" sx={{ color: '#2E7D32', fontStyle: replyDialog.incomingMsg ? 'normal' : 'italic' }}>
-                {replyDialog.incomingMsg?.text || 'Loading message...'}
+              <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                <CircularProgress size={24} sx={{ color: '#25D366' }} />
+              </Box>
+            ) : chatHistory.length === 0 ? (
+              <Typography variant="body2" sx={{ color: '#757575', textAlign: 'center', mt: 4 }}>
+                No messages yet
               </Typography>
+            ) : (
+              chatHistory.map((msg) => {
+                const isOutgoing = msg.direction === 'outgoing';
+                const ts = msg.sentAt || msg.receivedAt;
+                const time = ts?.toDate ? ts.toDate().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '';
+                return (
+                  <Box key={msg.id} sx={{ display: 'flex', justifyContent: isOutgoing ? 'flex-end' : 'flex-start' }}>
+                    <Box sx={{
+                      maxWidth: '75%',
+                      p: '8px 12px',
+                      borderRadius: isOutgoing ? '12px 12px 2px 12px' : '12px 12px 12px 2px',
+                      backgroundColor: isOutgoing ? '#DCF8C6' : '#fff',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                    }}>
+                      <Typography variant="body2" sx={{ color: '#111', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+                        {msg.text}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: '#999', fontSize: '0.7rem', display: 'block', textAlign: 'right', mt: 0.25 }}>
+                        {time}
+                      </Typography>
+                    </Box>
+                  </Box>
+                );
+              })
             )}
+            <div ref={chatEndRef} />
           </Box>
 
           {/* Reply input */}
-          <Typography variant="caption" sx={{ color: '#757575', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Your Reply
-          </Typography>
-          <TextField
-            sx={{ mt: 0.5 }}
-            fullWidth
-            multiline
-            rows={3}
-            placeholder="Type your reply here..."
-            value={replyText}
-            onChange={e => setReplyText(e.target.value)}
-            autoFocus
-          />
-          <Typography variant="caption" sx={{ color: '#9E9E9E', mt: 0.5, display: 'block' }}>
-            Message will be sent via WhatsApp to the customer
-          </Typography>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end' }}>
+            <TextField
+              fullWidth
+              multiline
+              maxRows={3}
+              placeholder="Type your reply here..."
+              value={replyText}
+              onChange={e => setReplyText(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendReply(); } }}
+              size="small"
+              autoFocus
+            />
+          </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
           <Button
