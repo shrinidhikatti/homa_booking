@@ -480,23 +480,39 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
               }}
             />
             <Box>
-              <Typography
-                variant="h6"
-                component="div"
-                sx={{
-                  fontWeight: 700,
-                  fontFamily: '"Spectral", Georgia, serif',
-                  letterSpacing: '0.01em',
-                  background: 'linear-gradient(135deg, #8B4513 0%, #A0522D 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                  lineHeight: 1.2,
-                  fontSize: { xs: '0.85rem', sm: '1rem' }
-                }}
-              >
-                Shri V M Joshi Vastu & Astrologer
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography
+                  variant="h6"
+                  component="div"
+                  sx={{
+                    fontWeight: 700,
+                    fontFamily: '"Spectral", Georgia, serif',
+                    letterSpacing: '0.01em',
+                    background: 'linear-gradient(135deg, #8B4513 0%, #A0522D 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                    lineHeight: 1.2,
+                    fontSize: { xs: '0.85rem', sm: '1rem' }
+                  }}
+                >
+                  Shri V M Joshi Vastu & Astrologer
+                </Typography>
+                <Box
+                  component="img"
+                  src="/booking-homa/joshi.jpeg"
+                  alt="Joshi"
+                  sx={{
+                    width: { xs: 36, sm: 44 },
+                    height: { xs: 36, sm: 44 },
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    border: '2px solid rgba(139, 69, 19, 0.3)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                    flexShrink: 0
+                  }}
+                />
+              </Box>
               <Typography
                 variant="caption"
                 sx={{
