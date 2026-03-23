@@ -1,34 +1,16 @@
 import React from 'react';
 import { Box, Typography, styled } from '@mui/material';
 
-const FooterContainer = styled(Box)(({ variant }) => ({
-  position: 'fixed',
-  bottom: '20px',
-  left: '50%',
-  transform: 'translateX(-50%)',
-  zIndex: 1000,
+const FooterContainer = styled(Box)({
   textAlign: 'center',
   display: 'flex',
   alignItems: 'center',
-  gap: '8px',
-  padding: '12px 24px',
-  background: variant === 'dark'
-    ? 'rgba(20, 20, 20, 0.85)'
-    : 'rgba(255, 255, 255, 0.95)',
-  backdropFilter: 'blur(10px)',
-  borderRadius: '50px',
-  border: `1px solid rgba(255, 140, 0, ${variant === 'dark' ? '0.3' : '0.2'})`,
-  boxShadow: variant === 'dark'
-    ? '0 4px 20px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(255, 140, 0, 0.2)'
-    : '0 4px 20px rgba(0, 0, 0, 0.1), 0 2px 8px rgba(255, 140, 0, 0.1)',
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    boxShadow: variant === 'dark'
-      ? '0 6px 25px rgba(0, 0, 0, 0.6), 0 4px 12px rgba(255, 140, 0, 0.3)'
-      : '0 6px 25px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(255, 140, 0, 0.15)',
-    transform: 'translateX(-50%) translateY(-2px)',
-  },
-}));
+  justifyContent: 'center',
+  gap: '6px',
+  padding: '20px 24px',
+  borderTop: '1px solid rgba(255, 140, 0, 0.1)',
+  mt: 4,
+});
 
 const DesignerText = styled(Typography)(({ variant }) => ({
   fontSize: '0.813rem',
@@ -77,12 +59,12 @@ const ArrowIcon = styled('span')({
   display: 'inline-block',
 });
 
-const Footer = ({ variant = 'light' }) => {
+const Footer = ({ dark }) => {
   return (
-    <FooterContainer variant={variant}>
-      <DesignerText variant={variant}>Designed and created by</DesignerText>
+    <FooterContainer>
+      <DesignerText variant={dark ? 'dark' : 'light'}>Designed and created by</DesignerText>
       <DesignerLink
-        variant={variant}
+        variant={dark ? 'dark' : 'light'}
         href="https://www.prashanvitech.com/"
         target="_blank"
         rel="noopener noreferrer"

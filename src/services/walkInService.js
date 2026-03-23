@@ -25,8 +25,14 @@ export const updateWalkInWhatsappStatus = async (id, status) => {
   await updateDoc(doc(db, COLLECTION, id), { whatsappStatus: status });
 };
 
-export const getWalkIns = async () => {
+export const getWalkIns = async (office) => {
   const q = query(collection(db, COLLECTION), orderBy('createdAt', 'desc'));
   const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  if (!office) return all;
+  if (office === 'Ramdev Galli') {
+    // Old entries (no office field) belong to Ramdev Galli
+    return all.filter(e => e.office === 'Ramdev Galli' || !e.office);
+  }
+  return all.filter(e => e.office === office);
 };

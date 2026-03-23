@@ -44,10 +44,12 @@ const sendTemplate = async (authKey, whatsappNumber, phone, templateName, params
       template: {
         name: templateName,
         language: { code: 'en', policy: 'deterministic' },
-        components: [{
-          type: 'body',
-          parameters: params.map(p => ({ type: 'text', text: String(p) }))
-        }]
+        ...(params.length > 0 && {
+          components: [{
+            type: 'body',
+            parameters: params.map(p => ({ type: 'text', text: String(p) }))
+          }]
+        })
       }
     }
   };
@@ -57,7 +59,8 @@ const sendTemplate = async (authKey, whatsappNumber, phone, templateName, params
     headers: { 'authkey': authKey, 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
   });
-  return res.json();
+  const text = await res.text();
+  try { return JSON.parse(text); } catch (e) { return { status: 'fail', errors: text }; }
 };
 
 // ── Core Cloud Function (called from React app) ────────────────────────────────
@@ -117,12 +120,20 @@ exports.sendWhatsApp = functions.https.onCall(async (data, context) => {
       responseData = await sendTemplate(authKey, whatsappNumber, phone,
         'walkinfirst', [name]
       );
+      functions.logger.info('walkinfirst response:', JSON.stringify(responseData));
 
       // Message 2: Rich welcome template after 5 seconds
+      functions.logger.info('Waiting 5s before walkinsecond...');
       await new Promise(r => setTimeout(r, 5000));
-      await sendTemplate(authKey, whatsappNumber, phone,
-        'walkinsecond', []
-      );
+      functions.logger.info('Sending walkinsecond to:', phone);
+      try {
+        const secondResponse = await sendTemplate(authKey, whatsappNumber, phone,
+          'walkinsecond', []
+        );
+        functions.logger.info('walkinsecond response:', JSON.stringify(secondResponse));
+      } catch (e) {
+        functions.logger.error('walkinsecond failed (non-critical):', e.message);
+      }
     } else if (message) {
       // Free-form text (only works within 24hr session window)
       const cleanPhone = phone.replace(/\D/g, '').replace(/^91/, '');

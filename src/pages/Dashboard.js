@@ -44,7 +44,9 @@ import {
   VisibilityOff,
   CheckCircle,
   Cancel,
-  PersonAdd
+  PersonAdd,
+  ChevronLeft,
+  ChevronRight
 } from '@mui/icons-material';
 
 import BookingCalendar from '../components/BookingCalendar';
@@ -86,6 +88,7 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
   const isBhadaji = userRole === USER_ROLES.BHADAJI;
   const isPurohit = userRole === USER_ROLES.PUROHIT;
   const [currentTab, setCurrentTab] = useState(0);
+  const [calendarPage, setCalendarPage] = useState(0); // 0=Calendar, 1=Bookings, 2=Reports
   const [bookings, setBookings] = useState([]);
   const [allBookings, setAllBookings] = useState([]); // Store all bookings before filtering
   const [purohits, setPurohits] = useState(DEFAULT_PUROHITS);
@@ -462,34 +465,37 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
       <AppBar position="static" elevation={0}>
         <Toolbar sx={{ py: 1.5, px: { xs: 2, sm: 3 } }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexGrow: 1 }}>
-            <Typography
+            <Box
+              component="img"
+              src="/booking-homa/vmjoshi.jpeg"
+              alt="Shri V M Joshi"
               sx={{
-                fontSize: '2rem',
-                background: 'linear-gradient(135deg, #FF6B00 0%, #FF8C00 50%, #FFA500 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-                lineHeight: 1,
+                width: { xs: 44, sm: 52 },
+                height: { xs: 44, sm: 52 },
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '2px solid rgba(139, 69, 19, 0.3)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                flexShrink: 0
               }}
-            >
-              ॐ
-            </Typography>
+            />
             <Box>
               <Typography
-                variant="h5"
+                variant="h6"
                 component="div"
                 sx={{
                   fontWeight: 700,
                   fontFamily: '"Spectral", Georgia, serif',
-                  letterSpacing: '-0.01em',
+                  letterSpacing: '0.01em',
                   background: 'linear-gradient(135deg, #8B4513 0%, #A0522D 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   backgroundClip: 'text',
                   lineHeight: 1.2,
+                  fontSize: { xs: '0.85rem', sm: '1rem' }
                 }}
               >
-                Homa Booking
+                Shri V M Joshi Vastu & Astrologer
               </Typography>
               <Typography
                 variant="caption"
@@ -521,38 +527,6 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
                 <Refresh />
               </IconButton>
             </Tooltip>
-            {!isBhadaji && !isPurohit && (
-              <Tooltip title="Send Reminders">
-                <IconButton
-                  onClick={handleSendReminders}
-                  sx={{
-                    color: '#6B5B47',
-                    '&:hover': {
-                      background: 'rgba(255, 140, 0, 0.1)',
-                      color: '#FF8C00'
-                    }
-                  }}
-                >
-                  <Notifications />
-                </IconButton>
-              </Tooltip>
-            )}
-            {!isPurohit && (
-              <Tooltip title="Export Data">
-                <IconButton
-                  onClick={handleExportMenuOpen}
-                  sx={{
-                    color: '#6B5B47',
-                    '&:hover': {
-                      background: 'rgba(255, 140, 0, 0.1)',
-                      color: '#FF8C00'
-                    }
-                  }}
-                >
-                  <FileDownload />
-                </IconButton>
-              </Tooltip>
-            )}
             {!isBhadaji && !isPurohit && (
               <Tooltip title="MSG91 / WhatsApp Settings">
                 <IconButton
@@ -675,13 +649,12 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
               }}
             >
               <Tab icon={<CalendarMonth />} label="Calendar" iconPosition="start" />
-              <Tab icon={<List />} label="Bookings" iconPosition="start" />
-              {!isPurohit && <Tab icon={<Assessment />} label="Reports" iconPosition="start" />}
               {!isPurohit && !isBhadaji && <Tab icon={<AutoFixHigh />} label="Klesha Nashana Kriya" iconPosition="start" />}
               {!isPurohit && !isBhadaji && <Tab icon={<School />} label="Class Enquiries" iconPosition="start" />}
-              {!isPurohit && <Tab icon={<PersonAdd />} label="Walk-in Entry" iconPosition="start" />}
+              {!isPurohit && <Tab icon={<PersonAdd />} label="Walk-in Ramdev Galli" iconPosition="start" />}
+              {!isPurohit && <Tab icon={<PersonAdd />} label="Walk-in Airport Road" iconPosition="start" />}
             </Tabs>
-            {currentTab === 0 && (
+            {currentTab === 0 && calendarPage === 0 && (
               <Tooltip title="Show Tithi, Nakshatra, Vāra details on calendar">
                 <FormControlLabel
                   control={
@@ -714,92 +687,96 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
         {/* Tab Panels - Enhanced with better spacing */}
         <Box sx={{ position: 'relative' }}>
           {currentTab === 0 && (
-            <Box
-              sx={{
-                animation: 'fadeIn 0.4s ease-out',
-                '@keyframes fadeIn': {
-                  from: { opacity: 0, transform: 'translateY(10px)' },
-                  to: { opacity: 1, transform: 'translateY(0)' }
-                }
-              }}
-            >
-              <Grid container spacing={3}>
-                <Grid item xs={12}>
-                  <Box sx={{
-                    background: 'white',
-                    borderRadius: '16px',
-                    border: '1px solid rgba(139, 69, 19, 0.08)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-                    p: { xs: 2, sm: 3 },
-                    overflow: 'hidden'
-                  }}>
-                    <BookingCalendar
-                      bookings={bookings}
-                      onDateSelect={handleDateSelect}
-                      selectedDate={selectedDate}
-                      showPanchanga={showPanchanga}
-                    />
+            <Box sx={{ animation: 'fadeIn 0.4s ease-out', '@keyframes fadeIn': { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'translateY(0)' } } }}>
+
+              {/* Internal page navigator */}
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2, gap: 2 }}>
+                <IconButton
+                  onClick={() => setCalendarPage(p => Math.max(0, p - 1))}
+                  disabled={calendarPage === 0}
+                  sx={{ color: '#8B4513' }}
+                >
+                  <ChevronLeft />
+                </IconButton>
+                {['Calendar', 'Bookings', !isPurohit ? 'Reports' : null].filter(Boolean).map((label, idx) => (
+                  <Box
+                    key={label}
+                    onClick={() => setCalendarPage(idx)}
+                    sx={{
+                      px: 2, py: 0.5, borderRadius: '20px', cursor: 'pointer', fontWeight: 600,
+                      fontSize: '0.85rem', transition: 'all 0.2s',
+                      background: calendarPage === idx ? 'linear-gradient(135deg, #FF6B00, #FF8C00)' : 'transparent',
+                      color: calendarPage === idx ? 'white' : '#8B4513',
+                      border: calendarPage === idx ? 'none' : '1px solid rgba(139,69,19,0.3)',
+                    }}
+                  >
+                    {label}
                   </Box>
-                </Grid>
-              </Grid>
-            </Box>
-          )}
-
-          {currentTab === 1 && (
-            <Box
-              sx={{
-                animation: 'fadeIn 0.4s ease-out',
-                '@keyframes fadeIn': {
-                  from: { opacity: 0, transform: 'translateY(10px)' },
-                  to: { opacity: 1, transform: 'translateY(0)' }
-                }
-              }}
-            >
-              <Box sx={{
-                background: 'white',
-                borderRadius: '16px',
-                border: '1px solid rgba(139, 69, 19, 0.08)',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-                overflow: 'hidden'
-              }}>
-                <BookingList
-                  bookings={bookings}
-                  purohits={purohits}
-                  onEdit={handleEditBooking}
-                  onDelete={handleDeleteBooking}
-                  onView={handleViewBooking}
-                  userRole={userRole}
-                  onUpdatePurohitCharges={handleUpdatePurohitCharges}
-                  onMarkComplete={handleMarkComplete}
-                  onUpdatePaymentReceivedBy={handleUpdatePaymentReceivedBy}
-                />
+                ))}
+                <IconButton
+                  onClick={() => setCalendarPage(p => Math.min(isPurohit ? 1 : 2, p + 1))}
+                  disabled={calendarPage === (isPurohit ? 1 : 2)}
+                  sx={{ color: '#8B4513' }}
+                >
+                  <ChevronRight />
+                </IconButton>
               </Box>
+
+              {/* Page 1: Calendar */}
+              {calendarPage === 0 && (
+                <Box sx={{ background: 'white', borderRadius: '16px', border: '1px solid rgba(139,69,19,0.08)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', p: { xs: 2, sm: 3 }, overflow: 'hidden' }}>
+                  <BookingCalendar
+                    bookings={bookings}
+                    onDateSelect={handleDateSelect}
+                    selectedDate={selectedDate}
+                    showPanchanga={showPanchanga}
+                  />
+                </Box>
+              )}
+
+              {/* Page 2: Bookings */}
+              {calendarPage === 1 && (
+                <Box sx={{ background: 'white', borderRadius: '16px', border: '1px solid rgba(139,69,19,0.08)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', overflow: 'hidden' }}>
+                  {!isPurohit && (
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1, p: 2, borderBottom: '1px solid rgba(139,69,19,0.08)' }}>
+                      <Tooltip title="Export Data">
+                        <IconButton onClick={handleExportMenuOpen} sx={{ color: '#6B5B47', '&:hover': { background: 'rgba(255,140,0,0.1)', color: '#FF8C00' } }}>
+                          <FileDownload />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  )}
+                  <BookingList
+                    bookings={bookings}
+                    purohits={purohits}
+                    onEdit={handleEditBooking}
+                    onDelete={handleDeleteBooking}
+                    onView={handleViewBooking}
+                    userRole={userRole}
+                    onUpdatePurohitCharges={handleUpdatePurohitCharges}
+                    onMarkComplete={handleMarkComplete}
+                    onUpdatePaymentReceivedBy={handleUpdatePaymentReceivedBy}
+                  />
+                </Box>
+              )}
+
+              {/* Page 3: Reports */}
+              {calendarPage === 2 && !isPurohit && (
+                <Box sx={{ background: 'white', borderRadius: '16px', border: '1px solid rgba(139,69,19,0.08)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', p: { xs: 2, sm: 3 } }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                    <Tooltip title="Export Data">
+                      <IconButton onClick={handleExportMenuOpen} sx={{ color: '#6B5B47', '&:hover': { background: 'rgba(255,140,0,0.1)', color: '#FF8C00' } }}>
+                        <FileDownload />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                  <Reports bookings={bookings} purohits={purohits} userRole={userRole} />
+                </Box>
+              )}
             </Box>
           )}
 
-          {currentTab === 2 && !isPurohit && (
-            <Box
-              sx={{
-                animation: 'fadeIn 0.4s ease-out',
-                '@keyframes fadeIn': {
-                  from: { opacity: 0, transform: 'translateY(10px)' },
-                  to: { opacity: 1, transform: 'translateY(0)' }
-                }
-              }}
-            >
-              <Box sx={{
-                background: 'white',
-                borderRadius: '16px',
-                border: '1px solid rgba(139, 69, 19, 0.08)',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.06)',
-                p: { xs: 2, sm: 3 }
-              }}>
-                <Reports bookings={bookings} purohits={purohits} userRole={userRole} />
-              </Box>
-            </Box>
-          )}
-
-          {currentTab === 4 && !isPurohit && !isBhadaji && (
+          {currentTab === 2 && !isPurohit && !isBhadaji && (
             <Box sx={{ animation: 'fadeIn 0.4s ease-out', '@keyframes fadeIn': { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'translateY(0)' } } }}>
               <Box sx={{ background: 'white', borderRadius: '16px', border: '1px solid rgba(26,35,126,0.08)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', p: { xs: 2, sm: 3 } }}>
                 <ClassEnquiryTab />
@@ -807,7 +784,7 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
             </Box>
           )}
 
-          {currentTab === 3 && !isPurohit && !isBhadaji && (
+          {currentTab === 1 && !isPurohit && !isBhadaji && (
             <Box
               sx={{
                 animation: 'fadeIn 0.4s ease-out',
@@ -829,11 +806,20 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
             </Box>
           )}
 
-          {/* Walk-in Entry: tab 5 for admin, tab 3 for Bhadaji */}
-          {currentTab === (isBhadaji ? 3 : 5) && !isPurohit && (
+          {/* Walk-in Ramdev Galli: tab 3 for admin, tab 1 for Bhadaji */}
+          {currentTab === (isBhadaji ? 1 : 3) && !isPurohit && (
             <Box sx={{ animation: 'fadeIn 0.4s ease-out', '@keyframes fadeIn': { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'translateY(0)' } } }}>
               <Box sx={{ background: 'white', borderRadius: '16px', border: '1px solid rgba(139, 69, 19, 0.08)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', p: { xs: 2, sm: 3 } }}>
-                <WalkInTab />
+                <WalkInTab office="Ramdev Galli" />
+              </Box>
+            </Box>
+          )}
+
+          {/* Walk-in Airport Road: tab 4 for admin, tab 2 for Bhadaji */}
+          {currentTab === (isBhadaji ? 2 : 4) && !isPurohit && (
+            <Box sx={{ animation: 'fadeIn 0.4s ease-out', '@keyframes fadeIn': { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'translateY(0)' } } }}>
+              <Box sx={{ background: 'white', borderRadius: '16px', border: '1px solid rgba(139, 69, 19, 0.08)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', p: { xs: 2, sm: 3 } }}>
+                <WalkInTab office="Airport Road" />
               </Box>
             </Box>
           )}

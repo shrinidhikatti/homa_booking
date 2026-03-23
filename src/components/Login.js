@@ -55,6 +55,7 @@ const gradientShift = keyframes`
 // Styled Components
 const PageContainer = styled(Box)({
   minHeight: '100vh',
+  position: 'relative',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -446,7 +447,9 @@ const Login = ({ onLogin }) => {
         </LoginCard>
 
         {/* Designer Footer */}
-        <Footer variant="dark" />
+        <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+          <Footer dark />
+        </Box>
       </PageContainer>
 
       {/* Load Google Fonts */}

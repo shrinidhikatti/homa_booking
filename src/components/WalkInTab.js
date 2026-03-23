@@ -37,7 +37,7 @@ import { sendWalkInWelcome, sendWhatsAppViaWeb } from '../services/msg91Service'
 
 const emptyForm = { clientName: '', mobileNumber: '', notes: '' };
 
-const WalkInTab = () => {
+const WalkInTab = ({ office }) => {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -48,10 +48,10 @@ const WalkInTab = () => {
   const [page, setPage] = useState(0);
   const rowsPerPage = 10;
 
-  const loadEntries = useCallback(async () => {
+  const loadEntries = useCallback(async () => { // eslint-disable-line react-hooks/exhaustive-deps
     setLoading(true);
     try {
-      const data = await getWalkIns();
+      const data = await getWalkIns(office);
       setEntries(data);
     } catch (e) {
       console.error(e);
@@ -83,7 +83,8 @@ const WalkInTab = () => {
       const entry = await createWalkIn({
         clientName: form.clientName.trim(),
         mobileNumber: form.mobileNumber.trim(),
-        notes: form.notes.trim()
+        notes: form.notes.trim(),
+        office: office || 'General'
       });
 
       setEntries(prev => [entry, ...prev]);
@@ -145,7 +146,7 @@ const WalkInTab = () => {
           <PersonAdd sx={{ color: '#8B4513', fontSize: 28 }} />
           <Box>
             <Typography variant="h6" sx={{ fontWeight: 700, color: '#3E2723' }}>
-              Walk-in Entry
+              Walk-in Entry {office ? `— ${office}` : ''}
             </Typography>
             <Typography variant="body2" sx={{ color: '#795548' }}>
               Record walk-in clients and send WhatsApp welcome
