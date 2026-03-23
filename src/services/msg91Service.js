@@ -77,6 +77,18 @@ export const sendReminderTemplate = async (booking) => {
   }
 };
 
+// Send free-form reply (works within 24hr session after customer replied)
+export const sendWhatsAppReply = async (phone, message) => {
+  try {
+    const sendWhatsApp = httpsCallable(functions, 'sendWhatsApp');
+    const result = await sendWhatsApp({ phone, message });
+    return result.data;
+  } catch (err) {
+    console.error('Cloud Function error (reply):', err);
+    return { success: false, error: err.message, fallback: true };
+  }
+};
+
 // Send walk-in welcome message via Cloud Function
 export const sendWalkInWelcome = async (phone, clientName) => {
   try {

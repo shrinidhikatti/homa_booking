@@ -165,6 +165,72 @@ exports.sendWhatsApp = functions.https.onCall(async (data, context) => {
   }
 });
 
+// ── Receive incoming WhatsApp replies (MSG91 webhook) ─────────────────────────
+
+exports.receiveWhatsApp = functions.https.onRequest(async (req, res) => {
+  // MSG91 sends GET for verification, respond OK
+  if (req.method === 'GET') return res.status(200).send('OK');
+
+  try {
+    const body = req.body;
+    // MSG91 may wrap in data array or send directly
+    const msg = Array.isArray(body?.data) ? body.data[0] : body;
+    const from = msg?.customerNumber || msg?.from || msg?.mobile || '';
+    const text = msg?.text || msg?.message || '';
+    const contentType = msg?.contentType || msg?.type || 'text';
+
+    functions.logger.info('Incoming WhatsApp:', { from, text, contentType });
+
+    if (!from || contentType !== 'text') return res.status(200).send('OK');
+
+    const cleanPhone = from.replace(/^91/, '').replace(/\D/g, '');
+    const db = admin.firestore();
+
+    // Find most recent walk-in entry with this phone (no orderBy to avoid index requirement)
+    const walkInSnap = await db.collection('walkIns')
+      .where('mobileNumber', '==', cleanPhone)
+      .get();
+
+    let walkInId = null;
+    if (!walkInSnap.empty) {
+      // Pick the most recent entry manually
+      const sorted = walkInSnap.docs.sort((a, b) => {
+        const aTime = a.data().createdAt?.seconds || 0;
+        const bTime = b.data().createdAt?.seconds || 0;
+        return bTime - aTime;
+      });
+      walkInId = sorted[0].id;
+    }
+
+    // Store incoming message
+    await db.collection('incomingMessages').add({
+      from: cleanPhone,
+      fromRaw: from,
+      text,
+      receivedAt: admin.firestore.Timestamp.now(),
+      walkInId,
+      replied: false,
+      replyText: '',
+      repliedAt: null
+    });
+
+    // Update walk-in status to replyReceived
+    if (walkInId) {
+      await db.doc(`walkIns/${walkInId}`).update({
+        whatsappStatus: 'replyReceived',
+        lastReplyText: text,
+        lastReplyAt: admin.firestore.Timestamp.now()
+      });
+    }
+
+    functions.logger.info('Stored incoming message from:', cleanPhone, 'walkInId:', walkInId);
+  } catch (err) {
+    functions.logger.error('receiveWhatsApp error:', err);
+  }
+
+  res.status(200).send('OK');
+});
+
 // ── Scheduled daily reminder (runs at 9 AM IST every day) ────────────────────
 
 exports.sendDailyReminders = functions.pubsub

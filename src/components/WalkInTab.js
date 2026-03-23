@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -30,10 +30,18 @@ import {
   PersonAdd,
   CheckCircle,
   Cancel,
-  HourglassEmpty
+  HourglassEmpty,
+  Reply,
+  MarkChatRead
 } from '@mui/icons-material';
-import { createWalkIn, updateWalkInWhatsappStatus, getWalkIns } from '../services/walkInService';
-import { sendWalkInWelcome, sendWhatsAppViaWeb } from '../services/msg91Service';
+import {
+  createWalkIn,
+  updateWalkInWhatsappStatus,
+  subscribeWalkIns,
+  getIncomingMessage,
+  markAsReplied
+} from '../services/walkInService';
+import { sendWalkInWelcome, sendWhatsAppViaWeb, sendWhatsAppReply } from '../services/msg91Service';
 
 const emptyForm = { clientName: '', mobileNumber: '', notes: '' };
 
@@ -48,21 +56,21 @@ const WalkInTab = ({ office }) => {
   const [page, setPage] = useState(0);
   const rowsPerPage = 10;
 
-  const loadEntries = useCallback(async () => { // eslint-disable-line react-hooks/exhaustive-deps
-    setLoading(true);
-    try {
-      const data = await getWalkIns(office);
-      setEntries(data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  // Reply dialog state
+  const [replyDialog, setReplyDialog] = useState({ open: false, entry: null, incomingMsg: null });
+  const [replyText, setReplyText] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
+  const [loadingMsg, setLoadingMsg] = useState(false);
 
+  // Real-time listener
   useEffect(() => {
-    loadEntries();
-  }, [loadEntries]);
+    setLoading(true);
+    const unsubscribe = subscribeWalkIns(office, (data) => {
+      setEntries(data);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [office]);
 
   const validate = () => {
     const errs = {};
@@ -87,21 +95,15 @@ const WalkInTab = ({ office }) => {
         office: office || 'General'
       });
 
-      setEntries(prev => [entry, ...prev]);
       setPage(0);
       setDialogOpen(false);
       setForm(emptyForm);
 
-      // Send WhatsApp welcome
       setSnackbar({ open: true, message: 'Walk-in saved! Sending WhatsApp welcome...', severity: 'info' });
 
       const result = await sendWalkInWelcome(form.mobileNumber.trim(), form.clientName.trim());
       const status = result?.success ? 'sent' : 'failed';
       await updateWalkInWhatsappStatus(entry.id, status);
-
-      setEntries(prev =>
-        prev.map(e => e.id === entry.id ? { ...e, whatsappStatus: status } : e)
-      );
 
       if (result?.success) {
         setSnackbar({ open: true, message: `WhatsApp welcome sent to ${form.clientName}!`, severity: 'success' });
@@ -116,6 +118,45 @@ const WalkInTab = ({ office }) => {
     }
   };
 
+  const handleOpenReply = async (entry) => {
+    setReplyText('');
+    setReplyDialog({ open: true, entry, incomingMsg: null });
+    setLoadingMsg(true);
+    try {
+      const msg = await getIncomingMessage(entry.id);
+      setReplyDialog(prev => ({ ...prev, incomingMsg: msg }));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingMsg(false);
+    }
+  };
+
+  const handleSendReply = async () => {
+    if (!replyText.trim()) return;
+    setSendingReply(true);
+    try {
+      const result = await sendWhatsAppReply(replyDialog.entry.mobileNumber, replyText.trim());
+      if (result?.success) {
+        // Mark message as replied in Firestore
+        if (replyDialog.incomingMsg) {
+          await markAsReplied(replyDialog.incomingMsg.id, replyText.trim());
+        }
+        await updateWalkInWhatsappStatus(replyDialog.entry.id, 'replied');
+        setSnackbar({ open: true, message: 'Reply sent successfully!', severity: 'success' });
+        setReplyDialog({ open: false, entry: null, incomingMsg: null });
+        setReplyText('');
+      } else {
+        setSnackbar({ open: true, message: 'Failed to send reply. Try WhatsApp Web instead.', severity: 'error' });
+      }
+    } catch (e) {
+      console.error(e);
+      setSnackbar({ open: true, message: 'Error sending reply.', severity: 'error' });
+    } finally {
+      setSendingReply(false);
+    }
+  };
+
   const handleWhatsAppWeb = (entry) => {
     const message =
       `Hello ${entry.clientName}! 🙏 Thank you for visiting us at Homa Booking. ` +
@@ -123,7 +164,35 @@ const WalkInTab = ({ office }) => {
     sendWhatsAppViaWeb(entry.mobileNumber, message);
   };
 
-  const statusChip = (status) => {
+  const statusChip = (status, entry) => {
+    if (status === 'replied') {
+      return (
+        <Chip
+          icon={<MarkChatRead />}
+          label="Replied"
+          size="small"
+          sx={{ backgroundColor: '#1565C0', color: '#fff', '& .MuiChip-icon': { color: '#fff' } }}
+        />
+      );
+    }
+    if (status === 'replyReceived') {
+      return (
+        <Chip
+          icon={<Reply />}
+          label="Reply Received"
+          size="small"
+          clickable
+          onClick={() => handleOpenReply(entry)}
+          sx={{
+            backgroundColor: '#2E7D32',
+            color: '#fff',
+            cursor: 'pointer',
+            '& .MuiChip-icon': { color: '#fff' },
+            '&:hover': { backgroundColor: '#1B5E20' }
+          }}
+        />
+      );
+    }
     if (status === 'sent') return <Chip icon={<CheckCircle />} label="Sent" color="success" size="small" />;
     if (status === 'failed') return <Chip icon={<Cancel />} label="Failed" color="error" size="small" />;
     return <Chip icon={<HourglassEmpty />} label="Pending" size="small" />;
@@ -203,7 +272,7 @@ const WalkInTab = ({ office }) => {
                   <TableCell sx={{ color: '#616161', maxWidth: 200 }}>
                     {entry.notes || '-'}
                   </TableCell>
-                  <TableCell>{statusChip(entry.whatsappStatus)}</TableCell>
+                  <TableCell>{statusChip(entry.whatsappStatus, entry)}</TableCell>
                   <TableCell align="center">
                     <Tooltip title="Send WhatsApp manually">
                       <IconButton
@@ -282,6 +351,93 @@ const WalkInTab = ({ office }) => {
             }}
           >
             {saving ? 'Saving...' : 'Save & Send WhatsApp'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Reply Dialog */}
+      <Dialog
+        open={replyDialog.open}
+        onClose={() => { setReplyDialog({ open: false, entry: null, incomingMsg: null }); setReplyText(''); }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pb: 1 }}>
+          <Box>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              Reply to {replyDialog.entry?.clientName}
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#757575' }}>
+              +91 {replyDialog.entry?.mobileNumber}
+            </Typography>
+          </Box>
+          <IconButton
+            onClick={() => { setReplyDialog({ open: false, entry: null, incomingMsg: null }); setReplyText(''); }}
+            size="small"
+          >
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 1 }}>
+          {/* Customer's message */}
+          <Typography variant="caption" sx={{ color: '#757575', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Customer's Message
+          </Typography>
+          <Box sx={{
+            mt: 0.5,
+            mb: 2.5,
+            p: 1.5,
+            backgroundColor: '#F1F8E9',
+            borderRadius: '10px',
+            border: '1px solid #C5E1A5',
+            minHeight: 48
+          }}>
+            {loadingMsg ? (
+              <CircularProgress size={18} sx={{ color: '#4CAF50' }} />
+            ) : (
+              <Typography variant="body2" sx={{ color: '#2E7D32', fontStyle: replyDialog.incomingMsg ? 'normal' : 'italic' }}>
+                {replyDialog.incomingMsg?.text || 'Loading message...'}
+              </Typography>
+            )}
+          </Box>
+
+          {/* Reply input */}
+          <Typography variant="caption" sx={{ color: '#757575', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Your Reply
+          </Typography>
+          <TextField
+            sx={{ mt: 0.5 }}
+            fullWidth
+            multiline
+            rows={3}
+            placeholder="Type your reply here..."
+            value={replyText}
+            onChange={e => setReplyText(e.target.value)}
+            autoFocus
+          />
+          <Typography variant="caption" sx={{ color: '#9E9E9E', mt: 0.5, display: 'block' }}>
+            Message will be sent via WhatsApp to the customer
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button
+            onClick={() => { setReplyDialog({ open: false, entry: null, incomingMsg: null }); setReplyText(''); }}
+            disabled={sendingReply}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleSendReply}
+            disabled={sendingReply || !replyText.trim()}
+            startIcon={sendingReply ? <CircularProgress size={16} color="inherit" /> : <Reply />}
+            sx={{
+              background: 'linear-gradient(135deg, #25D366, #128C7E)',
+              textTransform: 'none',
+              fontWeight: 600
+            }}
+          >
+            {sendingReply ? 'Sending...' : 'Send Reply'}
           </Button>
         </DialogActions>
       </Dialog>

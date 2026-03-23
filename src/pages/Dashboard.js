@@ -480,8 +480,7 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
               }}
             />
             <Box>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography
+              <Typography
                   variant="h6"
                   component="div"
                   sx={{
@@ -498,21 +497,6 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
                 >
                   Shri V M Joshi Vastu & Astrologer
                 </Typography>
-                <Box
-                  component="img"
-                  src="/booking-homa/joshi.jpeg"
-                  alt="Joshi"
-                  sx={{
-                    width: { xs: 36, sm: 44 },
-                    height: { xs: 36, sm: 44 },
-                    borderRadius: '50%',
-                    objectFit: 'cover',
-                    border: '2px solid rgba(139, 69, 19, 0.3)',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                    flexShrink: 0
-                  }}
-                />
-              </Box>
               <Typography
                 variant="caption"
                 sx={{
@@ -526,6 +510,20 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
                 {isBhadaji && 'Bhadaji Portal'} {isPurohit && 'Purohit Portal'} {!isBhadaji && !isPurohit && 'Admin Dashboard'}
               </Typography>
             </Box>
+            <Box
+              component="img"
+              src="/booking-homa/joshi.jpeg"
+              alt="Joshi"
+              sx={{
+                width: { xs: 44, sm: 52 },
+                height: { xs: 44, sm: 52 },
+                borderRadius: '50%',
+                objectFit: 'cover',
+                border: '2px solid rgba(139, 69, 19, 0.3)',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                flexShrink: 0
+              }}
+            />
           </Box>
 
           <Box sx={{ display: 'flex', gap: 0.5 }}>
