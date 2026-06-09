@@ -641,7 +641,7 @@ const KleshaKriyaTab = () => {
             {/* Phone */}
             <TextField
               label="Phone Number" value={form.phone}
-              onChange={e => handleFormChange('phone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+              onChange={e => { const d = e.target.value.replace(/\D/g, ''); handleFormChange('phone', d.length > 10 ? d.slice(-10) : d); }}
               error={!!formErrors.phone} helperText={formErrors.phone}
               fullWidth inputProps={{ inputMode: 'numeric' }}
               InputProps={{ startAdornment: <InputAdornment position="start"><PhoneOutlined sx={{ color: '#A1887F', fontSize: 20 }} /></InputAdornment> }}

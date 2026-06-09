@@ -69,7 +69,7 @@ const Footer = ({ dark }) => {
         target="_blank"
         rel="noopener noreferrer"
       >
-        Shrinidhi Katti
+        PrashanviTech
         <ArrowIcon>❯</ArrowIcon>
       </DesignerLink>
     </FooterContainer>

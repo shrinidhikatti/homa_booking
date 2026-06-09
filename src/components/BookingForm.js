@@ -143,7 +143,11 @@ const BookingForm = ({ open, onClose, onSave, booking, purohits, existingBooking
   };
 
   const handleChange = (field) => (event) => {
-    const value = event.target.value;
+    let value = event.target.value;
+    if (field === 'clientPhone') {
+      const d = value.replace(/\D/g, '');
+      value = d.length > 10 ? d.slice(-10) : d;
+    }
     let updates = { [field]: value };
 
     // Handle purohit selection

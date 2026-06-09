@@ -337,11 +337,11 @@ const WalkInTab = ({ office }) => {
             <TextField
               label="Mobile Number *"
               value={form.mobileNumber}
-              onChange={e => setForm(p => ({ ...p, mobileNumber: e.target.value }))}
+              onChange={e => { const d = e.target.value.replace(/\D/g, ''); setForm(p => ({ ...p, mobileNumber: d.length > 10 ? d.slice(-10) : d })); }}
               error={!!errors.mobileNumber}
               helperText={errors.mobileNumber || 'WhatsApp welcome will be sent to this number'}
               fullWidth
-              inputProps={{ maxLength: 10 }}
+              inputProps={{ inputMode: 'numeric' }}
               placeholder="10-digit mobile number"
             />
             <TextField

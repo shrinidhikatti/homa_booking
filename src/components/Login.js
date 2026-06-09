@@ -1,298 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Box,
-  TextField,
-  Button,
-  Typography,
-  Alert,
-  InputAdornment,
-  IconButton,
-  styled,
-  keyframes
-} from '@mui/material';
-import {
-  Visibility,
-  VisibilityOff,
-  Lock,
-  Person
-} from '@mui/icons-material';
 import { USER_ROLES } from '../config/constants';
-import Footer from './Footer';
-
-// Elegant animations
-const fadeIn = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
-
-const gentleFloat = keyframes`
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
-`;
-
-const gradientShift = keyframes`
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-`;
-
-// Styled Components
-const PageContainer = styled(Box)({
-  minHeight: '100vh',
-  position: 'relative',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: 'linear-gradient(135deg, #1a0a00 0%, #0a0a0a 25%, #1a0f0a 50%, #0a0a0a 75%, #1a0a00 100%)',
-  backgroundSize: '400% 400%',
-  animation: `${gradientShift} 20s ease infinite`,
-  position: 'relative',
-  overflow: 'hidden',
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    background: `
-      radial-gradient(circle at 20% 30%, rgba(255, 107, 0, 0.25) 0%, transparent 40%),
-      radial-gradient(circle at 80% 70%, rgba(255, 140, 0, 0.2) 0%, transparent 40%),
-      radial-gradient(circle at 50% 50%, rgba(255, 165, 0, 0.15) 0%, transparent 50%),
-      radial-gradient(circle at 10% 80%, rgba(139, 69, 19, 0.2) 0%, transparent 35%)
-    `,
-    animation: `${gradientShift} 15s ease infinite`,
-  },
-  '&::after': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundImage: `
-      radial-gradient(2px 2px at 20% 30%, rgba(255, 140, 0, 0.4), transparent),
-      radial-gradient(2px 2px at 60% 70%, rgba(255, 165, 0, 0.3), transparent),
-      radial-gradient(2px 2px at 80% 10%, rgba(255, 107, 0, 0.4), transparent),
-      radial-gradient(2px 2px at 40% 80%, rgba(255, 140, 0, 0.3), transparent),
-      radial-gradient(1px 1px at 90% 40%, rgba(255, 165, 0, 0.5), transparent),
-      radial-gradient(1px 1px at 30% 60%, rgba(255, 140, 0, 0.4), transparent),
-      repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(255, 140, 0, 0.04) 2px,
-        rgba(255, 140, 0, 0.04) 4px
-      )
-    `,
-    backgroundSize: '200% 200%, 200% 200%, 200% 200%, 200% 200%, 200% 200%, 200% 200%, 100% 100%',
-    backgroundPosition: '0% 0%, 40% 60%, 80% 20%, 20% 80%, 60% 40%, 30% 70%, 0% 0%',
-    pointerEvents: 'none',
-    animation: `${gradientShift} 25s ease infinite`,
-  }
-});
-
-const LoginCard = styled(Box)({
-  position: 'relative',
-  width: '100%',
-  maxWidth: '420px',
-  padding: '3.5rem 2.5rem',
-  background: 'linear-gradient(135deg, rgba(20, 20, 20, 0.95) 0%, rgba(30, 20, 15, 0.95) 100%)',
-  borderRadius: '20px',
-  border: '1px solid rgba(255, 140, 0, 0.2)',
-  boxShadow: `
-    0 20px 60px rgba(0, 0, 0, 0.5),
-    0 0 1px rgba(255, 140, 0, 0.5) inset,
-    0 0 80px rgba(255, 107, 0, 0.1)
-  `,
-  backdropFilter: 'blur(10px)',
-  animation: `${fadeIn} 0.6s ease-out`,
-  zIndex: 1,
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '1px',
-    background: 'linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.5), transparent)',
-  }
-});
-
-const LogoContainer = styled(Box)({
-  textAlign: 'center',
-  marginBottom: '2.5rem',
-  animation: `${fadeIn} 0.8s ease-out 0.2s both`,
-});
-
-const OmSymbol = styled(Typography)({
-  fontSize: '4rem',
-  fontWeight: 300,
-  background: 'linear-gradient(135deg, #ff6b00 0%, #ffa500 50%, #ff8c00 100%)',
-  backgroundSize: '200% auto',
-  WebkitBackgroundClip: 'text',
-  WebkitTextFillColor: 'transparent',
-  backgroundClip: 'text',
-  marginBottom: '1rem',
-  letterSpacing: '0.05em',
-  filter: 'drop-shadow(0 0 20px rgba(255, 107, 0, 0.3))',
-  animation: `${gentleFloat} 4s ease-in-out infinite`,
-});
-
-const Title = styled(Typography)({
-  fontSize: '1.75rem',
-  fontWeight: 300,
-  color: '#fff',
-  letterSpacing: '0.1em',
-  marginBottom: '0.5rem',
-  fontFamily: '"Cormorant Garamond", serif',
-  textTransform: 'uppercase',
-});
-
-const Subtitle = styled(Typography)({
-  fontSize: '0.875rem',
-  color: 'rgba(255, 140, 0, 0.7)',
-  letterSpacing: '0.15em',
-  fontWeight: 500,
-  textTransform: 'uppercase',
-  fontFamily: '"Montserrat", sans-serif',
-});
-
-const FormContainer = styled('form')({
-  animation: `${fadeIn} 0.8s ease-out 0.4s both`,
-});
-
-const StyledTextField = styled(TextField)({
-  marginBottom: '1.5rem',
-  '& .MuiOutlinedInput-root': {
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: '10px',
-    color: '#fff',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    '& fieldset': {
-      borderColor: 'rgba(255, 140, 0, 0.2)',
-      transition: 'all 0.3s ease',
-    },
-    '&:hover': {
-      backgroundColor: 'rgba(0, 0, 0, 0.4)',
-      '& fieldset': {
-        borderColor: 'rgba(255, 140, 0, 0.4)',
-      },
-    },
-    '&.Mui-focused': {
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      '& fieldset': {
-        borderColor: 'rgba(255, 140, 0, 0.8)',
-        borderWidth: '2px',
-      },
-    },
-  },
-  '& .MuiInputLabel-root': {
-    color: 'rgba(255, 140, 0, 0.6)',
-    fontFamily: '"Montserrat", sans-serif',
-    fontSize: '0.875rem',
-    letterSpacing: '0.05em',
-    '&.Mui-focused': {
-      color: 'rgba(255, 140, 0, 0.9)',
-    },
-  },
-  '& .MuiInputBase-input': {
-    fontFamily: '"Montserrat", sans-serif',
-    fontSize: '0.95rem',
-    padding: '14px',
-  },
-  '& .MuiInputAdornment-root .MuiSvgIcon-root': {
-    color: 'rgba(255, 140, 0, 0.5)',
-  }
-});
-
-const LoginButton = styled(Button)({
-  marginTop: '1.5rem',
-  padding: '1rem 2rem',
-  borderRadius: '10px',
-  fontSize: '0.95rem',
-  fontWeight: 600,
-  letterSpacing: '0.1em',
-  textTransform: 'uppercase',
-  fontFamily: '"Montserrat", sans-serif',
-  background: 'linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%)',
-  backgroundSize: '200% auto',
-  color: '#000',
-  border: 'none',
-  boxShadow: '0 4px 20px rgba(255, 107, 0, 0.3)',
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  position: 'relative',
-  overflow: 'hidden',
-  '&::before': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    left: '-100%',
-    width: '100%',
-    height: '100%',
-    background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent)',
-    transition: 'left 0.5s ease',
-  },
-  '&:hover': {
-    background: 'linear-gradient(135deg, #ff8c00 0%, #ffa500 100%)',
-    backgroundSize: '200% auto',
-    transform: 'translateY(-2px)',
-    boxShadow: '0 6px 30px rgba(255, 107, 0, 0.5)',
-    '&::before': {
-      left: '100%',
-    },
-  },
-  '&:active': {
-    transform: 'translateY(0)',
-  },
-  '&.Mui-disabled': {
-    background: 'rgba(255, 140, 0, 0.3)',
-    color: 'rgba(255, 255, 255, 0.3)',
-  }
-});
-
-const Divider = styled(Box)({
-  width: '60px',
-  height: '1px',
-  background: 'linear-gradient(90deg, transparent, rgba(255, 140, 0, 0.5), transparent)',
-  margin: '2rem auto',
-});
-
-const FooterText = styled(Typography)({
-  fontSize: '0.75rem',
-  color: 'rgba(255, 140, 0, 0.5)',
-  textAlign: 'center',
-  letterSpacing: '0.1em',
-  fontFamily: '"Cormorant Garamond", serif',
-  fontWeight: 500,
-  marginTop: '2rem',
-});
-
-
-const DecorativeElement = styled(Box)({
-  position: 'absolute',
-  width: '400px',
-  height: '400px',
-  borderRadius: '50%',
-  background: 'radial-gradient(circle, rgba(255, 107, 0, 0.2) 0%, rgba(255, 140, 0, 0.1) 30%, transparent 70%)',
-  filter: 'blur(60px)',
-  pointerEvents: 'none',
-  animation: `${gentleFloat} 6s ease-in-out infinite`,
-});
 
 const Login = ({ onLogin }) => {
   const [username, setUsername] = useState('');
@@ -301,7 +8,6 @@ const Login = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // User credentials with roles
   const USERS = [
     { username: 'vishal', password: 'vishal@1990', role: USER_ROLES.ADMIN, name: 'Admin' },
     { username: 'bhadaji', password: 'bhadaji@123', role: USER_ROLES.BHADAJI, name: 'Bhadaji' },
@@ -312,13 +18,9 @@ const Login = ({ onLogin }) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
-    // Simulate login delay
     setTimeout(() => {
       const user = USERS.find(u => u.username === username && u.password === password);
-
       if (user) {
-        // Store login state with role in localStorage
         const authData = {
           isLoggedIn: true,
           username: user.username,
@@ -326,12 +28,7 @@ const Login = ({ onLogin }) => {
           name: user.name,
           loginTime: new Date().toISOString()
         };
-
-        // Add purohitId for purohit users
-        if (user.purohitId) {
-          authData.purohitId = user.purohitId;
-        }
-
+        if (user.purohitId) authData.purohitId = user.purohitId;
         localStorage.setItem('homaBookingAuth', JSON.stringify(authData));
         onLogin(true, user.role, user.purohitId);
       } else {
@@ -341,124 +38,555 @@ const Login = ({ onLogin }) => {
     }, 500);
   };
 
+  const features = [
+    { icon: '🕉️', text: 'Homa & Pooja Booking Management' },
+    { icon: '📲', text: 'WhatsApp Integration & Alerts' },
+    { icon: '🚶', text: 'Walk-in Client Tracking' },
+    { icon: '🎓', text: 'Astrology & Vastu Class Enquiries' },
+    { icon: '🌑', text: 'Klesha Nashana Kriya Scheduler' },
+    { icon: '📊', text: 'Reports & Payment Tracking' },
+  ];
+
   return (
     <>
-      <PageContainer>
-        {/* Decorative glowing elements */}
-        <DecorativeElement sx={{ top: '-150px', right: '-100px' }} />
-        <DecorativeElement sx={{ bottom: '-150px', left: '-100px', animationDelay: '3s' }} />
-        <DecorativeElement sx={{ top: '50%', left: '-200px', width: '350px', height: '350px', animationDelay: '1.5s', animationDuration: '8s' }} />
-        <DecorativeElement sx={{ top: '-100px', left: '40%', width: '300px', height: '300px', animationDelay: '4s', animationDuration: '7s' }} />
-        <DecorativeElement sx={{ bottom: '100px', right: '-150px', width: '380px', height: '380px', animationDelay: '2s', animationDuration: '9s' }} />
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap');
 
-        <LoginCard>
-          <LogoContainer>
-            <OmSymbol>ॐ</OmSymbol>
-            <Title>Homa Booking</Title>
-            <Subtitle>Astro Vastu Shri V M Joshi</Subtitle>
-          </LogoContainer>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
 
-          <Divider />
+        .login-root {
+          display: flex;
+          min-height: 100vh;
+          font-family: 'DM Sans', sans-serif;
+        }
 
-          <FormContainer onSubmit={handleSubmit}>
-            <StyledTextField
-              fullWidth
-              label="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              autoFocus
-              autoComplete="username"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Person />
-                  </InputAdornment>
-                )
-              }}
-            />
+        /* ── LEFT PANEL ─────────────────────────────── */
+        .left-panel {
+          width: 44%;
+          position: relative;
+          display: flex;
+          flex-direction: column;
+          justify-content: space-between;
+          padding: 3rem 3.5rem;
+          background: linear-gradient(160deg, #16100a 0%, #1e1408 40%, #110d07 100%);
+          overflow: hidden;
+        }
 
-            <StyledTextField
-              fullWidth
-              label="Password"
-              type={showPassword ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Lock />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowPassword(!showPassword)}
-                      edge="end"
-                      sx={{
-                        color: 'rgba(255, 140, 0, 0.5)',
-                        '&:hover': {
-                          color: 'rgba(255, 140, 0, 0.8)',
-                        }
-                      }}
-                    >
-                      {showPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                )
-              }}
-            />
+        .left-panel::before {
+          content: '';
+          position: absolute;
+          top: -120px;
+          right: -80px;
+          width: 380px;
+          height: 380px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(255,107,0,0.18) 0%, transparent 70%);
+          pointer-events: none;
+        }
 
-            {error && (
-              <Alert
-                severity="error"
-                sx={{
-                  backgroundColor: 'rgba(211, 47, 47, 0.15)',
-                  color: '#ff6b6b',
-                  border: '1px solid rgba(211, 47, 47, 0.3)',
-                  borderRadius: '10px',
-                  fontFamily: '"Montserrat", sans-serif',
-                  fontSize: '0.875rem',
-                  animation: `${fadeIn} 0.3s ease-out`,
-                  '& .MuiAlert-icon': {
-                    color: '#ff6b6b',
-                  }
-                }}
-              >
-                {error}
-              </Alert>
-            )}
+        .left-panel::after {
+          content: '';
+          position: absolute;
+          bottom: -100px;
+          left: -60px;
+          width: 320px;
+          height: 320px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(255,140,0,0.12) 0%, transparent 70%);
+          pointer-events: none;
+        }
 
-            <LoginButton
-              type="submit"
-              fullWidth
-              variant="contained"
-              disabled={loading}
+        .left-glow {
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 500px;
+          height: 500px;
+          border-radius: 50%;
+          background: radial-gradient(circle, rgba(255,107,0,0.06) 0%, transparent 65%);
+          pointer-events: none;
+        }
+
+        /* top brand */
+        .brand-row {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          position: relative;
+          z-index: 1;
+        }
+
+        .brand-badge {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          background: linear-gradient(135deg, #ff6b00, #ff8c00);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 1.4rem;
+          box-shadow: 0 4px 20px rgba(255,107,0,0.35);
+          flex-shrink: 0;
+        }
+
+        .brand-name {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: 1.05rem;
+          font-weight: 600;
+          color: rgba(255,255,255,0.9);
+          letter-spacing: 0.04em;
+          line-height: 1.3;
+        }
+
+        .brand-sub {
+          font-size: 0.72rem;
+          color: rgba(255,140,0,0.65);
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          font-weight: 500;
+        }
+
+        /* main hero text */
+        .hero-section {
+          position: relative;
+          z-index: 1;
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          padding: 2rem 0;
+        }
+
+        .hero-om {
+          font-size: 3.5rem;
+          color: rgba(255,140,0,0.8);
+          margin-bottom: 1.2rem;
+          line-height: 1;
+          filter: drop-shadow(0 0 16px rgba(255,107,0,0.4));
+        }
+
+        .hero-title {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: clamp(2rem, 3.2vw, 2.8rem);
+          font-weight: 600;
+          color: #fff;
+          line-height: 1.2;
+          margin-bottom: 1rem;
+          letter-spacing: -0.01em;
+        }
+
+        .hero-title span {
+          color: #ff8c00;
+        }
+
+        .hero-desc {
+          font-size: 0.95rem;
+          color: rgba(255,255,255,0.5);
+          line-height: 1.7;
+          max-width: 320px;
+          font-weight: 300;
+        }
+
+        /* features */
+        .features-list {
+          position: relative;
+          z-index: 1;
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .feature-item {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .feature-dot {
+          width: 28px;
+          height: 28px;
+          border-radius: 50%;
+          background: rgba(255,107,0,0.15);
+          border: 1px solid rgba(255,107,0,0.3);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.8rem;
+          flex-shrink: 0;
+        }
+
+        .feature-text {
+          font-size: 0.875rem;
+          color: rgba(255,255,255,0.7);
+          font-weight: 400;
+        }
+
+        /* divider line */
+        .panel-divider {
+          position: absolute;
+          right: 0;
+          top: 0;
+          bottom: 0;
+          width: 1px;
+          background: linear-gradient(to bottom, transparent, rgba(255,140,0,0.25) 30%, rgba(255,140,0,0.25) 70%, transparent);
+        }
+
+        /* ── RIGHT PANEL ────────────────────────────── */
+        .right-panel {
+          width: 56%;
+          background: #faf9f7;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          padding: 3rem 4rem;
+          position: relative;
+        }
+
+        .right-inner {
+          width: 100%;
+          max-width: 400px;
+        }
+
+        /* welcome header */
+        .welcome-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          background: rgba(255,107,0,0.08);
+          border: 1px solid rgba(255,107,0,0.2);
+          border-radius: 20px;
+          padding: 5px 14px;
+          font-size: 0.78rem;
+          color: #d06000;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
+          margin-bottom: 1.5rem;
+        }
+
+        .welcome-title {
+          font-family: 'Cormorant Garamond', serif;
+          font-size: 2.2rem;
+          font-weight: 600;
+          color: #1a1006;
+          line-height: 1.2;
+          margin-bottom: 0.5rem;
+          letter-spacing: -0.01em;
+        }
+
+        .welcome-sub {
+          font-size: 0.9rem;
+          color: #7a6a55;
+          margin-bottom: 2.5rem;
+          font-weight: 400;
+        }
+
+        /* form */
+        .form-group {
+          margin-bottom: 1.25rem;
+        }
+
+        .form-label {
+          display: block;
+          font-size: 0.82rem;
+          font-weight: 600;
+          color: #3d2e1e;
+          margin-bottom: 7px;
+          letter-spacing: 0.02em;
+        }
+
+        .form-input-wrap {
+          position: relative;
+          display: flex;
+          align-items: center;
+        }
+
+        .form-input-icon {
+          position: absolute;
+          left: 14px;
+          color: #b08a60;
+          display: flex;
+          align-items: center;
+          font-size: 1rem;
+          pointer-events: none;
+        }
+
+        .form-input {
+          width: 100%;
+          padding: 13px 14px 13px 42px;
+          border: 1.5px solid #e8ddd0;
+          border-radius: 10px;
+          font-size: 0.95rem;
+          font-family: 'DM Sans', sans-serif;
+          color: #1a1006;
+          background: #fff;
+          outline: none;
+          transition: border-color 0.2s, box-shadow 0.2s;
+          -webkit-appearance: none;
+        }
+
+        .form-input::placeholder {
+          color: #c4b59e;
+        }
+
+        .form-input:focus {
+          border-color: #ff8c00;
+          box-shadow: 0 0 0 3px rgba(255,140,0,0.12);
+        }
+
+        .form-input.has-end {
+          padding-right: 46px;
+        }
+
+        .toggle-pw {
+          position: absolute;
+          right: 12px;
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: #b08a60;
+          display: flex;
+          align-items: center;
+          padding: 4px;
+          border-radius: 4px;
+          transition: color 0.2s;
+        }
+
+        .toggle-pw:hover { color: #ff8c00; }
+
+        /* error */
+        .error-box {
+          background: #fff2f2;
+          border: 1px solid #f5b8b8;
+          border-radius: 8px;
+          padding: 10px 14px;
+          font-size: 0.85rem;
+          color: #c0392b;
+          margin-bottom: 1rem;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        /* submit button */
+        .submit-btn {
+          width: 100%;
+          padding: 14px;
+          background: linear-gradient(135deg, #ff6b00, #ff9500);
+          border: none;
+          border-radius: 10px;
+          font-size: 0.95rem;
+          font-weight: 700;
+          font-family: 'DM Sans', sans-serif;
+          color: #fff;
+          cursor: pointer;
+          letter-spacing: 0.05em;
+          text-transform: uppercase;
+          box-shadow: 0 4px 18px rgba(255,107,0,0.35);
+          transition: all 0.25s ease;
+          margin-top: 0.5rem;
+        }
+
+        .submit-btn:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 24px rgba(255,107,0,0.45);
+          background: linear-gradient(135deg, #ff7a00, #ffaa00);
+        }
+
+        .submit-btn:active:not(:disabled) {
+          transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        /* footer credit */
+        .right-footer {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          padding: 16px 24px;
+          text-align: center;
+          border-top: 1px solid #ede5d8;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+        }
+
+        .footer-text {
+          font-size: 0.78rem;
+          color: #9a8872;
+        }
+
+        .footer-link {
+          font-size: 0.78rem;
+          font-weight: 600;
+          color: #ff8c00;
+          text-decoration: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          transition: color 0.2s;
+        }
+
+        .footer-link:hover { color: #e07400; }
+
+        /* ── RESPONSIVE ──────────────────────────────── */
+        @media (max-width: 768px) {
+          .login-root { flex-direction: column; }
+          .left-panel {
+            width: 100%;
+            padding: 2rem 2rem 1.5rem;
+          }
+          .hero-section { padding: 1.5rem 0; }
+          .hero-title { font-size: 1.8rem; }
+          .hero-om { font-size: 2.5rem; }
+          .features-list { display: none; }
+          .right-panel {
+            width: 100%;
+            padding: 2rem 1.5rem 4rem;
+          }
+          .panel-divider { display: none; }
+        }
+      `}</style>
+
+      <div className="login-root">
+        {/* ── LEFT PANEL ── */}
+        <div className="left-panel">
+          <div className="left-glow" />
+          <div className="panel-divider" />
+
+          {/* Brand */}
+          <div className="brand-row">
+            <div className="brand-badge">ॐ</div>
+            <div>
+              <div className="brand-name">Homa Booking System</div>
+              <div className="brand-sub">Astro Vastu Shri V M Joshi</div>
+            </div>
+          </div>
+
+          {/* Hero */}
+          <div className="hero-section">
+            <div className="hero-om">ॐ</div>
+            <h1 className="hero-title">
+              Sacred Rituals,<br />
+              <span>Seamlessly</span> Managed.
+            </h1>
+            <p className="hero-desc">
+              A complete management portal for homa bookings, walk-in clients,
+              class enquiries, and WhatsApp communication — all in one place.
+            </p>
+          </div>
+
+          {/* Features */}
+          <div className="features-list">
+            {features.map((f, i) => (
+              <div className="feature-item" key={i}>
+                <div className="feature-dot">{f.icon}</div>
+                <span className="feature-text">{f.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── RIGHT PANEL ── */}
+        <div className="right-panel">
+          <div className="right-inner">
+            <div className="welcome-badge">🔐 &nbsp;Secure Portal</div>
+            <h2 className="welcome-title">Welcome back</h2>
+            <p className="welcome-sub">Sign in to access the booking dashboard</p>
+
+            <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label className="form-label" htmlFor="username">Username</label>
+                <div className="form-input-wrap">
+                  <span className="form-input-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                    </svg>
+                  </span>
+                  <input
+                    id="username"
+                    type="text"
+                    className="form-input"
+                    placeholder="Enter your username"
+                    value={username}
+                    onChange={e => setUsername(e.target.value)}
+                    autoFocus
+                    autoComplete="username"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" htmlFor="password">Password</label>
+                <div className="form-input-wrap">
+                  <span className="form-input-icon">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </span>
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    className="form-input has-end"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    autoComplete="current-password"
+                    required
+                  />
+                  <button type="button" className="toggle-pw" onClick={() => setShowPassword(p => !p)} tabIndex={-1}>
+                    {showPassword ? (
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                        <line x1="1" y1="1" x2="23" y2="23"/>
+                      </svg>
+                    ) : (
+                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {error && (
+                <div className="error-box">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+                  </svg>
+                  {error}
+                </div>
+              )}
+
+              <button type="submit" className="submit-btn" disabled={loading}>
+                {loading ? 'Authenticating...' : 'Sign In'}
+              </button>
+            </form>
+          </div>
+
+          {/* Footer */}
+          <div className="right-footer">
+            <span className="footer-text">Designed &amp; Developed by</span>
+            <a
+              className="footer-link"
+              href="https://www.prashanvitech.com/"
+              target="_blank"
+              rel="noopener noreferrer"
             >
-              {loading ? 'Authenticating...' : 'Sign In'}
-            </LoginButton>
-          </FormContainer>
-
-          <FooterText>
-            Sacred Portal • Divine Access
-          </FooterText>
-        </LoginCard>
-
-        {/* Designer Footer */}
-        <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
-          <Footer dark />
-        </Box>
-      </PageContainer>
-
-      {/* Load Google Fonts */}
-      <link rel="preconnect" href="https://fonts.googleapis.com" />
-      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-      <link
-        href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Montserrat:wght@300;400;500;600;700&display=swap"
-        rel="stylesheet"
-      />
+              PrashanviTech ❯
+            </a>
+          </div>
+        </div>
+      </div>
     </>
   );
 };
