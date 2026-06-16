@@ -59,6 +59,7 @@ import Footer from '../components/Footer';
 import KleshaKriyaTab from '../components/KleshaKriyaTab';
 import ClassEnquiryTab from '../components/ClassEnquiryTab';
 import WalkInTab from '../components/WalkInTab';
+import StudentFeeTab from '../components/StudentFeeTab';
 
 import {
   getAllBookings,
@@ -667,6 +668,7 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
               {!isPurohit && !isBhadaji && <Tab icon={<School />} label="Class Enquiries" iconPosition="start" />}
               {!isPurohit && <Tab icon={<PersonAdd />} label="Walk-in Ramdev Galli" iconPosition="start" />}
               {!isPurohit && <Tab icon={<PersonAdd />} label="Walk-in Airport Road" iconPosition="start" />}
+              {!isPurohit && !isBhadaji && <Tab icon={<School />} label="Students & Fees" iconPosition="start" />}
             </Tabs>
             {currentTab === 0 && calendarPage === 0 && (
               <Tooltip title="Show Tithi, Nakshatra, Vāra details on calendar">
@@ -834,6 +836,15 @@ const Dashboard = ({ onLogout, userRole, purohitId }) => {
             <Box sx={{ animation: 'fadeIn 0.4s ease-out', '@keyframes fadeIn': { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'translateY(0)' } } }}>
               <Box sx={{ background: 'white', borderRadius: '16px', border: '1px solid rgba(139, 69, 19, 0.08)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', p: { xs: 2, sm: 3 } }}>
                 <WalkInTab office="Airport Road" />
+              </Box>
+            </Box>
+          )}
+
+          {/* Students & Fees: tab 5 for admin only */}
+          {currentTab === 5 && !isPurohit && !isBhadaji && (
+            <Box sx={{ animation: 'fadeIn 0.4s ease-out', '@keyframes fadeIn': { from: { opacity: 0, transform: 'translateY(10px)' }, to: { opacity: 1, transform: 'translateY(0)' } } }}>
+              <Box sx={{ background: 'white', borderRadius: '16px', border: '1px solid rgba(139, 69, 19, 0.08)', boxShadow: '0 4px 12px rgba(0,0,0,0.06)', p: { xs: 2, sm: 3 } }}>
+                <StudentFeeTab />
               </Box>
             </Box>
           )}
