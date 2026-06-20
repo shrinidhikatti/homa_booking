@@ -288,7 +288,7 @@ const StudentFeeTab = () => {
     return Object.keys(e).length === 0;
   };
 
-  const handleSavePayment = async () => {
+  const handleSavePayment = async (shouldPrint = false) => {
     if (!validatePayment()) return;
     setSaving(true);
     try {
@@ -296,14 +296,12 @@ const StudentFeeTab = () => {
         ...payForm,
         amount: Number(payForm.amount),
       });
-      // Update local student state
       const newPaid    = (payDialog.student.amountPaid || 0) + Number(payForm.amount);
       const newPending = (payDialog.student.totalFee   || 0) - newPaid;
       const updatedStudent = { ...payDialog.student, amountPaid: newPaid, pendingBalance: newPending };
       setStudents(prev => prev.map(s => s.id === payDialog.student.id ? updatedStudent : s));
       toast(`Payment recorded — ${result.receiptNo}`);
-      // Auto-print receipt
-      printReceipt(result, updatedStudent);
+      if (shouldPrint) printReceipt(result, updatedStudent);
       setPayDialog({ open: false, student: null });
     } catch {
       toast('Failed to record payment', 'error');
@@ -863,10 +861,14 @@ const StudentFeeTab = () => {
         <DialogActions sx={{ px: 3, pb: 2.5, borderTop: '1px solid #f0e6d3', pt: 1.5 }}>
           <Button onClick={() => setPayDialog({ open: false, student: null })}
             sx={{ textTransform: 'none', color: '#888' }}>Cancel</Button>
-          <Button variant="contained" onClick={handleSavePayment} disabled={saving}
+          <Button variant="outlined" onClick={() => handleSavePayment(false)} disabled={saving}
+            sx={{ borderColor: '#e65100', color: '#e65100', borderRadius: '8px', textTransform: 'none', fontWeight: 600 }}>
+            {saving ? <CircularProgress size={18} color="inherit" /> : 'Save'}
+          </Button>
+          <Button variant="contained" onClick={() => handleSavePayment(true)} disabled={saving}
             startIcon={<Print sx={{ fontSize: 16 }} />}
             sx={{ bgcolor: '#2E7D32', '&:hover': { bgcolor: '#1B5E20' }, borderRadius: '8px', textTransform: 'none', fontWeight: 600 }}>
-            {saving ? <CircularProgress size={18} color="inherit" /> : 'Save & Print Receipt'}
+            {saving ? <CircularProgress size={18} color="inherit" /> : 'Print Receipt'}
           </Button>
         </DialogActions>
       </Dialog>
