@@ -234,7 +234,7 @@ const StudentFeeTab = () => {
         const created = await createStudent(data);
         // Record initial payment if provided
         if (initialPayment && Number(initialPayment) > 0) {
-          const pay = await addPayment(created.id, {
+          await addPayment(created.id, {
             amount: Number(initialPayment),
             paymentMode: initialPaymentMode,
             paymentDate: initialPaymentDate,
