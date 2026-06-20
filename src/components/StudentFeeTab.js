@@ -244,8 +244,7 @@ const StudentFeeTab = () => {
           const newPending = data.totalFee - newPaid;
           const withPay    = { ...created, amountPaid: newPaid, pendingBalance: newPending };
           setStudents(prev => [withPay, ...prev]);
-          printReceipt(pay, withPay);
-          toast(`Student added — ID: ${created.studentCode}. Receipt printed.`);
+          toast(`Student added — ID: ${created.studentCode}. Initial payment of ${fmtCurrency(Number(initialPayment))} recorded.`);
         } else {
           setStudents(prev => [created, ...prev]);
           toast(`Student added — ID: ${created.studentCode}`);
