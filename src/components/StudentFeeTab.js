@@ -44,9 +44,7 @@ const emptyStudent = {
 const emptyPayment = { amount: '', paymentMode: 'Cash', paymentDate: '', note: '' };
 
 // ── Receipt print ─────────────────────────────────────────────────────────────
-const printReceipt = (payment, student) => {
-  const w = window.open('', '_blank', 'width=650,height=750');
-  w.document.write(`<!DOCTYPE html><html><head><title>Receipt - ${payment.receiptNo}</title>
+const buildReceiptHTML = (payment, student) => `<!DOCTYPE html><html><head><title>Receipt - ${payment.receiptNo}</title>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     body { font-family: 'Segoe UI', sans-serif; padding: 32px; color: #1a1a1a; }
@@ -110,7 +108,13 @@ const printReceipt = (payment, student) => {
     <p style="margin-top:6px;">Designed &amp; Developed by <a href="https://www.prashanvitech.com">PrashanviTech</a></p>
   </div>
   <script>window.onload = () => { window.print(); }<\/script>
-  </body></html>`);
+  </body></html>`;
+
+const printReceipt = (payment, student, existingWindow = null) => {
+  const w = existingWindow || window.open('', '_blank', 'width=650,height=750');
+  if (!w) return;
+  w.document.open();
+  w.document.write(buildReceiptHTML(payment, student));
   w.document.close();
 };
 
@@ -290,6 +294,8 @@ const StudentFeeTab = () => {
 
   const handleSavePayment = async (shouldPrint = false) => {
     if (!validatePayment()) return;
+    // Open window NOW (sync, before any await) so popup blocker doesn't block it
+    const printWin = shouldPrint ? window.open('', '_blank', 'width=650,height=750') : null;
     setSaving(true);
     try {
       const result = await addPayment(payDialog.student.id, {
@@ -301,9 +307,10 @@ const StudentFeeTab = () => {
       const updatedStudent = { ...payDialog.student, amountPaid: newPaid, pendingBalance: newPending };
       setStudents(prev => prev.map(s => s.id === payDialog.student.id ? updatedStudent : s));
       toast(`Payment recorded — ${result.receiptNo}`);
-      if (shouldPrint) printReceipt(result, updatedStudent);
+      if (shouldPrint) printReceipt(result, updatedStudent, printWin);
       setPayDialog({ open: false, student: null });
     } catch {
+      if (printWin) printWin.close();
       toast('Failed to record payment', 'error');
     } finally {
       setSaving(false);
