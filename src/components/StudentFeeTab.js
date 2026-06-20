@@ -38,7 +38,8 @@ const courseLabel = (v) => COURSES.find(c => c.value === v)?.label || v;
 
 const emptyStudent = {
   name: '', mobile: '', course: 'astrology', batch: '',
-  joiningDate: '', totalFee: '', status: 'active', notes: ''
+  joiningDate: '', totalFee: '', status: 'active', notes: '',
+  initialPayment: '', initialPaymentMode: 'Cash', initialPaymentDate: ''
 };
 const emptyPayment = { amount: '', paymentMode: 'Cash', paymentDate: '', note: '' };
 
@@ -193,7 +194,7 @@ const StudentFeeTab = () => {
 
   // ── Student CRUD ──────────────────────────────────────────────────────────
   const openAddStudent = () => {
-    setStudentForm(emptyStudent);
+    setStudentForm({ ...emptyStudent, initialPaymentDate: new Date().toISOString().split('T')[0] });
     setStudentErrors({});
     setStudentDialog({ open: true, editing: null });
   };
@@ -223,15 +224,32 @@ const StudentFeeTab = () => {
     if (!validateStudent()) return;
     setSaving(true);
     try {
-      const data = { ...studentForm, totalFee: Number(studentForm.totalFee) };
+      const { initialPayment, initialPaymentMode, initialPaymentDate, ...rest } = studentForm;
+      const data = { ...rest, totalFee: Number(rest.totalFee) };
       if (studentDialog.editing) {
         const updated = await updateStudent(studentDialog.editing.id, data);
         setStudents(prev => prev.map(s => s.id === updated.id ? { ...s, ...updated } : s));
         toast('Student updated');
       } else {
         const created = await createStudent(data);
-        setStudents(prev => [created, ...prev]);
-        toast(`Student added — ID: ${created.studentCode}`);
+        // Record initial payment if provided
+        if (initialPayment && Number(initialPayment) > 0) {
+          const pay = await addPayment(created.id, {
+            amount: Number(initialPayment),
+            paymentMode: initialPaymentMode,
+            paymentDate: initialPaymentDate,
+            note: 'Initial payment at enrollment',
+          });
+          const newPaid    = Number(initialPayment);
+          const newPending = data.totalFee - newPaid;
+          const withPay    = { ...created, amountPaid: newPaid, pendingBalance: newPending };
+          setStudents(prev => [withPay, ...prev]);
+          printReceipt(pay, withPay);
+          toast(`Student added — ID: ${created.studentCode}. Receipt printed.`);
+        } else {
+          setStudents(prev => [created, ...prev]);
+          toast(`Student added — ID: ${created.studentCode}`);
+        }
       }
       setStudentDialog({ open: false, editing: null });
     } catch {
@@ -701,14 +719,72 @@ const StudentFeeTab = () => {
             </Box>
 
             {studentDialog.editing && (
-              <FormControl fullWidth size="small">
-                <InputLabel>Status</InputLabel>
-                <Select value={studentForm.status} label="Status"
-                  onChange={e => setStudentForm(p => ({ ...p, status: e.target.value }))}
-                  sx={{ borderRadius: '10px' }}>
-                  {STATUS_OPTIONS.map(s => <MenuItem key={s} value={s} sx={{ textTransform: 'capitalize' }}>{s}</MenuItem>)}
-                </Select>
-              </FormControl>
+              <>
+                {/* Fee summary in edit mode */}
+                <Box sx={{ bgcolor: '#fff8f0', border: '1px solid #ffd580', borderRadius: '10px', p: 1.5 }}>
+                  <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#7c4a03', textTransform: 'uppercase', letterSpacing: '0.06em', mb: 1 }}>
+                    Fee Summary
+                  </Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography sx={{ fontSize: '0.82rem', color: '#666' }}>Total Fee</Typography>
+                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 700 }}>{fmtCurrency(studentDialog.editing.totalFee)}</Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                    <Typography sx={{ fontSize: '0.82rem', color: '#666' }}>Amount Paid</Typography>
+                    <Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: '#2E7D32' }}>{fmtCurrency(studentDialog.editing.amountPaid)}</Typography>
+                  </Box>
+                  <Divider sx={{ my: 0.8 }} />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography sx={{ fontSize: '0.82rem', color: '#666' }}>Pending Balance</Typography>
+                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: (studentDialog.editing.pendingBalance || 0) > 0 ? '#c62828' : '#2E7D32' }}>
+                      {fmtCurrency(studentDialog.editing.pendingBalance)}
+                    </Typography>
+                  </Box>
+                </Box>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Status</InputLabel>
+                  <Select value={studentForm.status} label="Status"
+                    onChange={e => setStudentForm(p => ({ ...p, status: e.target.value }))}
+                    sx={{ borderRadius: '10px' }}>
+                    {STATUS_OPTIONS.map(s => <MenuItem key={s} value={s} sx={{ textTransform: 'capitalize' }}>{s}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </>
+            )}
+
+            {/* Initial payment section — only for new student */}
+            {!studentDialog.editing && (
+              <>
+                <Divider sx={{ my: 0.5 }}>
+                  <Typography sx={{ fontSize: '0.72rem', color: '#aaa', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    Initial Payment (optional)
+                  </Typography>
+                </Divider>
+                <Box sx={{ bgcolor: '#f0fdf4', border: '1px solid #86efac', borderRadius: '10px', p: 1.5 }}>
+                  <Typography sx={{ fontSize: '0.75rem', color: '#555', mb: 1.2 }}>
+                    If the student pays at the time of enrollment, enter the amount here. A receipt will be printed automatically.
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 2 }}>
+                    <TextField label="Amount Paid Now" value={studentForm.initialPayment}
+                      onChange={e => setStudentForm(p => ({ ...p, initialPayment: e.target.value.replace(/\D/g, '') }))}
+                      size="small" fullWidth inputProps={{ inputMode: 'numeric' }}
+                      InputProps={{ startAdornment: <InputAdornment position="start">₹</InputAdornment> }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: '#fff' } }} />
+                    <TextField label="Payment Date" type="date" value={studentForm.initialPaymentDate}
+                      onChange={e => setStudentForm(p => ({ ...p, initialPaymentDate: e.target.value }))}
+                      size="small" fullWidth InputLabelProps={{ shrink: true }}
+                      sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px', bgcolor: '#fff' } }} />
+                  </Box>
+                  <FormControl fullWidth size="small" sx={{ mt: 1.5 }}>
+                    <InputLabel>Payment Mode</InputLabel>
+                    <Select value={studentForm.initialPaymentMode} label="Payment Mode"
+                      onChange={e => setStudentForm(p => ({ ...p, initialPaymentMode: e.target.value }))}
+                      sx={{ borderRadius: '10px', bgcolor: '#fff' }}>
+                      {PAY_MODES.map(m => <MenuItem key={m} value={m}>{m}</MenuItem>)}
+                    </Select>
+                  </FormControl>
+                </Box>
+              </>
             )}
 
             <TextField label="Notes (optional)" value={studentForm.notes}
