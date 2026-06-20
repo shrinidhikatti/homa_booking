@@ -500,7 +500,7 @@ const StudentFeeTab = () => {
             <Box sx={{ textAlign: 'center', py: 6 }}><CircularProgress sx={{ color: '#e65100' }} /></Box>
           ) : (
             <TableContainer component={Paper} elevation={0}
-              sx={{ border: '1px solid #f0e6d3', borderRadius: '12px', overflow: 'hidden' }}>
+              sx={{ border: '1px solid #f0e6d3', borderRadius: '12px', overflowX: 'auto' }}>
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ bgcolor: '#fff8f0' }}>
@@ -596,7 +596,7 @@ const StudentFeeTab = () => {
             Pending Fees — {students.filter(s => (s.pendingBalance || 0) > 0).length} students
           </Typography>
           <TableContainer component={Paper} elevation={0}
-            sx={{ border: '1px solid #f0e6d3', borderRadius: '12px', overflow: 'hidden' }}>
+            sx={{ border: '1px solid #f0e6d3', borderRadius: '12px', overflowX: 'auto' }}>
             <Table size="small">
               <TableHead>
                 <TableRow sx={{ bgcolor: '#fff8f0' }}>
