@@ -5,19 +5,20 @@ import {
   TableContainer, TableHead, TableRow, Paper, Chip, IconButton,
   MenuItem, Select, FormControl, InputLabel, InputAdornment,
   Tabs, Tab, Alert, Snackbar, Tooltip, Divider, CircularProgress,
-  Card, CardContent, TablePagination
+  Card, CardContent, TablePagination, Checkbox
 } from '@mui/material';
 import {
   Add, Search, Edit, Delete, Payment, History, Print,
   FileDownload, School, CheckCircle, HourglassEmpty,
-  PersonAdd, Close, Payments, Class
+  PersonAdd, Payments, Class, ArrowBack
 } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
 import {
   createStudent, updateStudent, deleteStudent, getAllStudents,
   addPayment, deletePayment, getPayments,
-  getAllBatches, createBatch, deleteBatch
+  getAllBatches, createBatch
 } from '../services/studentFeeService';
+import { sendCourierDispatchedNotice, sendLmsCredentialsNotice } from '../services/msg91Service';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const COURSES = [
@@ -144,6 +145,9 @@ const StudentFeeTab = () => {
   const [subTab, setSubTab] = useState(0);
   const [students, setStudents] = useState([]);
   const [batches, setBatches] = useState([]);
+  const [batchSort, setBatchSort] = useState('date_desc');
+  const [batchCourseFilter, setBatchCourseFilter] = useState('all');
+  const [batchDetail, setBatchDetail] = useState({ open: false, batch: null });
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
@@ -163,7 +167,7 @@ const StudentFeeTab = () => {
   const [paymentsLoading, setPaymentsLoading] = useState(false);
 
   const [batchDialog, setBatchDialog] = useState(false);
-  const [batchForm, setBatchForm]     = useState({ name: '', course: 'astrology' });
+  const [batchForm, setBatchForm]     = useState({ name: '', course: 'astrology', startDate: '' });
 
   const [deleteConfirm, setDeleteConfirm] = useState({ open: false, type: '', id: null, extra: null });
   const [saving, setSaving] = useState(false);
@@ -276,6 +280,31 @@ const StudentFeeTab = () => {
     }
   };
 
+  // ── Fulfillment tracking (Notes / Packed / Courier / LMS Credentials) ──────
+  const toggleFulfillment = async (student, field) => {
+    const newValue = !student[field];
+    try {
+      await updateStudent(student.id, { [field]: newValue });
+      setStudents(prev => prev.map(s => s.id === student.id ? { ...s, [field]: newValue } : s));
+
+      if (newValue && field === 'courierSent') {
+        const res = await sendCourierDispatchedNotice(student.mobile, student.name);
+        toast(res?.success
+          ? `Courier notice sent to ${student.name}`
+          : `Marked dispatched, but WhatsApp message failed for ${student.name}`,
+          res?.success ? 'success' : 'warning');
+      } else if (newValue && field === 'lmsCredentialsSent') {
+        const res = await sendLmsCredentialsNotice(student.mobile, student.name);
+        toast(res?.success
+          ? `LMS credentials notice sent to ${student.name}`
+          : `Marked as sent, but WhatsApp message failed for ${student.name}`,
+          res?.success ? 'success' : 'warning');
+      }
+    } catch {
+      toast('Failed to update status', 'error');
+    }
+  };
+
   // ── Payment ───────────────────────────────────────────────────────────────
   const openPayDialog = (student) => {
     setPayForm({ ...emptyPayment, paymentDate: new Date().toISOString().split('T')[0] });
@@ -353,23 +382,13 @@ const StudentFeeTab = () => {
     try {
       const b = await createBatch(batchForm);
       setBatches(prev => [b, ...prev]);
-      setBatchForm({ name: '', course: 'astrology' });
+      setBatchForm({ name: '', course: 'astrology', startDate: '' });
       setBatchDialog(false);
       toast('Batch created');
     } catch {
       toast('Failed to create batch', 'error');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleDeleteBatch = async (id) => {
-    try {
-      await deleteBatch(id);
-      setBatches(prev => prev.filter(b => b.id !== id));
-      toast('Batch deleted');
-    } catch {
-      toast('Failed to delete batch', 'error');
     }
   };
 
@@ -409,6 +428,24 @@ const StudentFeeTab = () => {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Pending Fees');
     XLSX.writeFile(wb, `AVJ_PendingFees_${new Date().toLocaleDateString('en-IN').replace(/\//g, '-')}.xlsx`);
+  };
+
+  const exportFulfillmentExcel = () => {
+    const rows = students.map(s => ({
+      'Student ID':          s.studentCode,
+      'Name':                s.name,
+      'Mobile':              s.mobile,
+      'Course':              courseLabel(s.course),
+      'Batch':               s.batch || '',
+      'Notes Printed':       s.notesPrinted ? 'Yes' : 'No',
+      'Packed':              s.packed ? 'Yes' : 'No',
+      'Courier Dispatched':  s.courierSent ? 'Yes' : 'No',
+      'LMS Credentials Sent': s.lmsCredentialsSent ? 'Yes' : 'No',
+    }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Fulfillment Status');
+    XLSX.writeFile(wb, `AVJ_FulfillmentStatus_${new Date().toLocaleDateString('en-IN').replace(/\//g, '-')}.xlsx`);
   };
 
   // ── Chip Colours ──────────────────────────────────────────────────────────
@@ -464,6 +501,11 @@ const StudentFeeTab = () => {
               sx={{ borderColor: '#c62828', color: '#c62828', borderRadius: '8px', textTransform: 'none', fontWeight: 600 }}>
               Pending Fees
             </Button>
+            <Button variant="outlined" startIcon={<FileDownload />} size="small"
+              onClick={exportFulfillmentExcel}
+              sx={{ borderColor: '#1565C0', color: '#1565C0', borderRadius: '8px', textTransform: 'none', fontWeight: 600 }}>
+              Fulfillment Status
+            </Button>
           </Box>
         )}
         {subTab === 2 && (
@@ -504,7 +546,7 @@ const StudentFeeTab = () => {
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ bgcolor: '#fff8f0' }}>
-                    {['ID', 'Name', 'Mobile', 'Course', 'Batch', 'Total Fee', 'Paid', 'Pending', 'Status', 'Actions'].map(h => (
+                    {['ID', 'Name', 'Mobile', 'Course', 'Batch', 'Total Fee', 'Paid', 'Pending', 'Status', 'Notes', 'Packed', 'Courier', 'LMS Sent', 'Actions'].map(h => (
                       <TableCell key={h} sx={{ fontWeight: 700, fontSize: '0.75rem', color: '#7c4a03', py: 1.5, whiteSpace: 'nowrap' }}>
                         {h}
                       </TableCell>
@@ -530,6 +572,34 @@ const StudentFeeTab = () => {
                         </Typography>
                       </TableCell>
                       <TableCell>{statusChip(s.status)}</TableCell>
+                      <TableCell padding="checkbox">
+                        <Tooltip title="Notes Printed">
+                          <Checkbox size="small" checked={!!s.notesPrinted}
+                            onChange={() => toggleFulfillment(s, 'notesPrinted')}
+                            sx={{ color: '#bbb', '&.Mui-checked': { color: '#e65100' } }} />
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell padding="checkbox">
+                        <Tooltip title="Packed">
+                          <Checkbox size="small" checked={!!s.packed}
+                            onChange={() => toggleFulfillment(s, 'packed')}
+                            sx={{ color: '#bbb', '&.Mui-checked': { color: '#e65100' } }} />
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell padding="checkbox">
+                        <Tooltip title="Courier Dispatched — ticking sends a WhatsApp update to the client">
+                          <Checkbox size="small" checked={!!s.courierSent}
+                            onChange={() => toggleFulfillment(s, 'courierSent')}
+                            sx={{ color: '#bbb', '&.Mui-checked': { color: '#2E7D32' } }} />
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell padding="checkbox">
+                        <Tooltip title="LMS Credentials Sent — ticking sends a WhatsApp update to the client">
+                          <Checkbox size="small" checked={!!s.lmsCredentialsSent}
+                            onChange={() => toggleFulfillment(s, 'lmsCredentialsSent')}
+                            sx={{ color: '#bbb', '&.Mui-checked': { color: '#1565C0' } }} />
+                        </Tooltip>
+                      </TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', gap: 0.3 }}>
                           <Tooltip title="Add Payment">
@@ -563,7 +633,7 @@ const StudentFeeTab = () => {
                   ))}
                   {filtered.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={10} sx={{ textAlign: 'center', py: 4, color: '#999' }}>
+                      <TableCell colSpan={14} sx={{ textAlign: 'center', py: 4, color: '#999' }}>
                         {search ? 'No students match your search.' : 'No students added yet.'}
                       </TableCell>
                     </TableRow>
@@ -636,30 +706,152 @@ const StudentFeeTab = () => {
       {/* ══════════════ BATCHES TAB ══════════════ */}
       {subTab === 2 && (
         <Box>
-          <Typography sx={{ fontSize: '0.85rem', color: '#888', mb: 2 }}>
-            {batches.length} batch{batches.length !== 1 ? 'es' : ''} created
-          </Typography>
-          {batches.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 6, color: '#bbb' }}>
-              <Class sx={{ fontSize: 40, mb: 1 }} />
-              <Typography>No batches yet. Create your first batch.</Typography>
+          {batchDetail.batch ? (
+            /* ── Inline batch detail (not a popup) ── */
+            <Box>
+              <Button onClick={() => setBatchDetail({ open: false, batch: null })} startIcon={<ArrowBack />}
+                sx={{ textTransform: 'none', color: '#e65100', fontWeight: 600, mb: 2 }}>
+                Back to Batches
+              </Button>
+              <Box sx={{ mb: 2 }}>
+                <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', color: '#3d2e1e' }}>
+                  {batchDetail.batch.name}
+                </Typography>
+                <Typography sx={{ fontSize: '0.8rem', color: '#888' }}>
+                  {courseLabel(batchDetail.batch.course)}
+                  {batchDetail.batch.startDate && ` · Starts ${new Date(batchDetail.batch.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`}
+                </Typography>
+              </Box>
+              {(() => {
+                const batchStudents = students.filter(s => s.batch === batchDetail.batch.name);
+                return batchStudents.length === 0 ? (
+                  <Box sx={{ textAlign: 'center', py: 5, color: '#bbb' }}>
+                    <Typography>No students enrolled in this batch yet.</Typography>
+                  </Box>
+                ) : (
+                  <>
+                    <Typography sx={{ fontSize: '0.8rem', color: '#888', mb: 1.5 }}>
+                      {batchStudents.length} student{batchStudents.length !== 1 ? 's' : ''} enrolled
+                    </Typography>
+                    <TableContainer component={Paper} elevation={0}
+                      sx={{ border: '1px solid #f0e6d3', borderRadius: '12px', overflowX: 'auto' }}>
+                      <Table size="small">
+                        <TableHead>
+                          <TableRow sx={{ bgcolor: '#fff8f0' }}>
+                            {['ID', 'Name', 'Mobile', 'Total Fee', 'Paid', 'Pending', 'Status', 'Notes', 'Packed', 'Courier', 'LMS Sent'].map(h => (
+                              <TableCell key={h} sx={{ fontWeight: 700, fontSize: '0.75rem', color: '#7c4a03', py: 1.2, whiteSpace: 'nowrap' }}>
+                                {h}
+                              </TableCell>
+                            ))}
+                          </TableRow>
+                        </TableHead>
+                        <TableBody>
+                          {batchStudents.map(s => (
+                            <TableRow key={s.id}>
+                              <TableCell sx={{ fontSize: '0.78rem' }}>{s.studentCode}</TableCell>
+                              <TableCell sx={{ fontSize: '0.78rem', fontWeight: 600 }}>{s.name}</TableCell>
+                              <TableCell sx={{ fontSize: '0.78rem' }}>{s.mobile}</TableCell>
+                              <TableCell sx={{ fontSize: '0.78rem' }}>{fmtCurrency(s.totalFee)}</TableCell>
+                              <TableCell sx={{ fontSize: '0.78rem', color: '#2E7D32' }}>{fmtCurrency(s.amountPaid)}</TableCell>
+                              <TableCell sx={{ fontSize: '0.78rem', color: s.pendingBalance > 0 ? '#c62828' : '#888' }}>{fmtCurrency(s.pendingBalance)}</TableCell>
+                              <TableCell>{statusChip(s.status)}</TableCell>
+                              <TableCell padding="checkbox">
+                                <Tooltip title="Notes Printed">
+                                  <Checkbox size="small" checked={!!s.notesPrinted}
+                                    onChange={() => toggleFulfillment(s, 'notesPrinted')}
+                                    sx={{ color: '#bbb', '&.Mui-checked': { color: '#e65100' } }} />
+                                </Tooltip>
+                              </TableCell>
+                              <TableCell padding="checkbox">
+                                <Tooltip title="Packed">
+                                  <Checkbox size="small" checked={!!s.packed}
+                                    onChange={() => toggleFulfillment(s, 'packed')}
+                                    sx={{ color: '#bbb', '&.Mui-checked': { color: '#e65100' } }} />
+                                </Tooltip>
+                              </TableCell>
+                              <TableCell padding="checkbox">
+                                <Tooltip title="Courier Dispatched — ticking sends a WhatsApp update to the client">
+                                  <Checkbox size="small" checked={!!s.courierSent}
+                                    onChange={() => toggleFulfillment(s, 'courierSent')}
+                                    sx={{ color: '#bbb', '&.Mui-checked': { color: '#2E7D32' } }} />
+                                </Tooltip>
+                              </TableCell>
+                              <TableCell padding="checkbox">
+                                <Tooltip title="LMS Credentials Sent — ticking sends a WhatsApp update to the client">
+                                  <Checkbox size="small" checked={!!s.lmsCredentialsSent}
+                                    onChange={() => toggleFulfillment(s, 'lmsCredentialsSent')}
+                                    sx={{ color: '#bbb', '&.Mui-checked': { color: '#1565C0' } }} />
+                                </Tooltip>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </TableContainer>
+                  </>
+                );
+              })()}
             </Box>
           ) : (
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-              {batches.map(b => (
-                <Box key={b.id} sx={{ display: 'flex', alignItems: 'center', gap: 1,
-                  bgcolor: '#fff8f0', border: '1px solid #ffd580', borderRadius: '10px', px: 2, py: 1 }}>
-                  <Box>
-                    <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#3d2e1e' }}>{b.name}</Typography>
-                    <Typography sx={{ fontSize: '0.72rem', color: '#888' }}>{courseLabel(b.course)}</Typography>
-                  </Box>
-                  <IconButton size="small" onClick={() => handleDeleteBatch(b.id)}
-                    sx={{ color: '#c62828', ml: 1 }}>
-                    <Close sx={{ fontSize: 14 }} />
-                  </IconButton>
+            /* ── Batch list ── */
+            <>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', mb: 2 }}>
+                <Typography sx={{ fontSize: '0.85rem', color: '#888', mr: 'auto' }}>
+                  {batches.length} batch{batches.length !== 1 ? 'es' : ''} created
+                </Typography>
+                <FormControl size="small" sx={{ minWidth: 150 }}>
+                  <InputLabel>Course</InputLabel>
+                  <Select value={batchCourseFilter} label="Course"
+                    onChange={e => setBatchCourseFilter(e.target.value)}
+                    sx={{ borderRadius: '10px' }}>
+                    <MenuItem value="all">All Courses</MenuItem>
+                    {COURSES.map(c => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
+                  </Select>
+                </FormControl>
+                <FormControl size="small" sx={{ minWidth: 170 }}>
+                  <InputLabel>Sort by</InputLabel>
+                  <Select value={batchSort} label="Sort by"
+                    onChange={e => setBatchSort(e.target.value)}
+                    sx={{ borderRadius: '10px' }}>
+                    <MenuItem value="date_desc">Start Date (Newest)</MenuItem>
+                    <MenuItem value="date_asc">Start Date (Oldest)</MenuItem>
+                    <MenuItem value="name">Batch Name (A–Z)</MenuItem>
+                  </Select>
+                </FormControl>
+              </Box>
+              {(() => {
+                const filtered = batches.filter(b => batchCourseFilter === 'all' || b.course === batchCourseFilter);
+                const sorted = [...filtered].sort((a, b) => {
+                  if (batchSort === 'name') return (a.name || '').localeCompare(b.name || '');
+                  const aTime = a.startDate ? new Date(a.startDate).getTime() : 0;
+                  const bTime = b.startDate ? new Date(b.startDate).getTime() : 0;
+                  return batchSort === 'date_asc' ? aTime - bTime : bTime - aTime;
+                });
+                return sorted.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 6, color: '#bbb' }}>
+                  <Class sx={{ fontSize: 40, mb: 1 }} />
+                  <Typography>{batches.length === 0 ? 'No batches yet. Create your first batch.' : 'No batches match this filter.'}</Typography>
                 </Box>
-              ))}
-            </Box>
+              ) : (
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+                  {sorted.map(b => (
+                    <Box key={b.id} onClick={() => setBatchDetail({ open: true, batch: b })}
+                      sx={{ display: 'flex', alignItems: 'center', gap: 1, cursor: 'pointer',
+                      bgcolor: '#fff8f0', border: '1px solid #ffd580', borderRadius: '10px', px: 2, py: 1,
+                      '&:hover': { bgcolor: '#fff2de', borderColor: '#e65100' } }}>
+                      <Box>
+                        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#3d2e1e' }}>{b.name}</Typography>
+                        <Typography sx={{ fontSize: '0.72rem', color: '#888' }}>
+                          {courseLabel(b.course)}
+                          {b.startDate && ` · Starts ${new Date(b.startDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}`}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              );
+              })()}
+            </>
           )}
         </Box>
       )}
@@ -967,6 +1159,10 @@ const StudentFeeTab = () => {
                 {COURSES.map(c => <MenuItem key={c.value} value={c.value}>{c.label}</MenuItem>)}
               </Select>
             </FormControl>
+            <TextField label="Start Date" type="date" value={batchForm.startDate}
+              onChange={e => setBatchForm(p => ({ ...p, startDate: e.target.value }))}
+              fullWidth size="small" InputLabelProps={{ shrink: true }}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '10px' } }} />
           </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5, borderTop: '1px solid #f0e6d3', pt: 1.5 }}>

@@ -134,6 +134,16 @@ exports.sendWhatsApp = functions.https.onCall(async (data, context) => {
       } catch (e) {
         functions.logger.error('walkinsecond failed (non-critical):', e.message);
       }
+    } else if (type === 'courier') {
+      const name = clientName || 'Customer';
+      responseData = await sendTemplate(authKey, whatsappNumber, phone,
+        'courier_dispatched', [name]
+      );
+    } else if (type === 'lms_credentials') {
+      const name = clientName || 'Customer';
+      responseData = await sendTemplate(authKey, whatsappNumber, phone,
+        'lms_credentials_sent', [name]
+      );
     } else if (message) {
       // Free-form text (only works within 24hr session window)
       const cleanPhone = phone.replace(/\D/g, '').replace(/^91/, '');

@@ -101,6 +101,30 @@ export const sendWalkInWelcome = async (phone, clientName) => {
   }
 };
 
+// Send "courier dispatched" notice via Cloud Function
+export const sendCourierDispatchedNotice = async (phone, clientName) => {
+  try {
+    const sendWhatsApp = httpsCallable(functions, 'sendWhatsApp');
+    const result = await sendWhatsApp({ phone, type: 'courier', clientName });
+    return result.data;
+  } catch (err) {
+    console.error('Cloud Function error (courier):', err);
+    return { success: false, error: err.message, fallback: true };
+  }
+};
+
+// Send "LMS credentials sent" notice via Cloud Function
+export const sendLmsCredentialsNotice = async (phone, clientName) => {
+  try {
+    const sendWhatsApp = httpsCallable(functions, 'sendWhatsApp');
+    const result = await sendWhatsApp({ phone, type: 'lms_credentials', clientName });
+    return result.data;
+  } catch (err) {
+    console.error('Cloud Function error (lms_credentials):', err);
+    return { success: false, error: err.message, fallback: true };
+  }
+};
+
 // ── Template send (for pre-approved templates) ────────────────────────────────
 
 export const sendWhatsAppTemplate = async (recipientPhone, templateName, templateParams) => {
@@ -278,6 +302,8 @@ export default {
   sendBookingReminderToClient,
   sendBookingReminderToPurohit,
   sendBulkWhatsAppReminders,
+  sendCourierDispatchedNotice,
+  sendLmsCredentialsNotice,
   sendWhatsAppViaWeb,
   testMsg91Connection,
   refreshMsg91Config
