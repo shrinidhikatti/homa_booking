@@ -12,7 +12,8 @@ const getMsg91Config = async () => {
   const settings = snap.exists ? snap.data() : {};
   return {
     authKey: settings.msg91AuthKey || null,
-    whatsappNumber: settings.whatsappNumber || '919632691895'
+    whatsappNumber: settings.whatsappNumber || '919632691895',
+    courierHeaderImageUrl: settings.courierHeaderImageUrl || null
   };
 };
 
@@ -32,8 +33,21 @@ const formatDate = (dateVal) => {
 };
 
 // ── Send via approved template ─────────────────────────────────────────────────
-const sendTemplate = async (authKey, whatsappNumber, phone, templateName, params) => {
+const sendTemplate = async (authKey, whatsappNumber, phone, templateName, params, headerImageUrl) => {
   const cleanPhone = phone.replace(/\D/g, '').replace(/^91/, '');
+  const components = [];
+  if (headerImageUrl) {
+    components.push({
+      type: 'header',
+      parameters: [{ type: 'image', image: { link: headerImageUrl } }]
+    });
+  }
+  if (params.length > 0) {
+    components.push({
+      type: 'body',
+      parameters: params.map(p => ({ type: 'text', text: String(p) }))
+    });
+  }
   const body = {
     integrated_number: whatsappNumber,
     content_type: 'template',
@@ -44,12 +58,7 @@ const sendTemplate = async (authKey, whatsappNumber, phone, templateName, params
       template: {
         name: templateName,
         language: { code: 'en', policy: 'deterministic' },
-        ...(params.length > 0 && {
-          components: [{
-            type: 'body',
-            parameters: params.map(p => ({ type: 'text', text: String(p) }))
-          }]
-        })
+        ...(components.length > 0 && { components })
       }
     }
   };
@@ -72,7 +81,7 @@ exports.sendWhatsApp = functions.https.onCall(async (data, context) => {
     throw new functions.https.HttpsError('invalid-argument', 'phone is required');
   }
 
-  const { authKey, whatsappNumber } = await getMsg91Config();
+  const { authKey, whatsappNumber, courierHeaderImageUrl } = await getMsg91Config();
 
   if (!isConfigured(authKey)) {
     return { success: false, error: 'MSG91 not configured', fallback: true };
@@ -137,7 +146,7 @@ exports.sendWhatsApp = functions.https.onCall(async (data, context) => {
     } else if (type === 'courier') {
       const name = clientName || 'Customer';
       responseData = await sendTemplate(authKey, whatsappNumber, phone,
-        'courier_dispatched_book_kit', [name]
+        'courier_dispatched_book_kit', [name], courierHeaderImageUrl
       );
     } else if (type === 'lms_credentials') {
       const name = clientName || 'Customer';
