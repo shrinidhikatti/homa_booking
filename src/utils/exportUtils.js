@@ -362,6 +362,29 @@ export const exportEnquiriesToExcel = (enquiries, filename = 'class_enquiries') 
   XLSX.writeFile(workbook, `${filename}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
 };
 
+// Export walk-ins to Excel — used for full/historical history since the
+// live view only keeps the most recent entries loaded (see walkInService.js)
+export const exportWalkInsToExcel = (walkIns, filename = 'walk_ins') => {
+  const data = walkIns.map((w, i) => ({
+    '#': i + 1,
+    'Date & Time': w.createdAt?.toDate ? format(w.createdAt.toDate(), 'dd MMM yyyy, hh:mm a') : '',
+    'Client Name': w.clientName || '',
+    'Mobile': w.mobileNumber || '',
+    'Office': w.office || '',
+    'Notes': w.notes || '',
+    'WhatsApp Status': w.whatsappStatus || ''
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  worksheet['!cols'] = [
+    { wch: 4 }, { wch: 20 }, { wch: 22 }, { wch: 14 },
+    { wch: 14 }, { wch: 30 }, { wch: 16 }
+  ];
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Walk-ins');
+  XLSX.writeFile(workbook, `${filename}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+};
+
 export const exportEnquiriesToPDF = (enquiries, title = 'Class Enquiries – Astrology & Vastu', filename = 'class_enquiries') => {
   const doc = new jsPDF('l', 'mm', 'a4');
   doc.setFontSize(16);

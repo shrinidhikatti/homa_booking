@@ -32,17 +32,20 @@ import {
   Cancel,
   HourglassEmpty,
   Reply,
-  MarkChatRead
+  MarkChatRead,
+  FileDownload
 } from '@mui/icons-material';
 import {
   createWalkIn,
   updateWalkInWhatsappStatus,
   subscribeWalkIns,
+  getWalkIns,
   getChatHistory,
   storeOutgoingMessage,
   markAsReplied
 } from '../services/walkInService';
 import { sendWalkInWelcome, sendWhatsAppViaWeb, sendWhatsAppReply } from '../services/msg91Service';
+import { exportWalkInsToExcel } from '../utils/exportUtils';
 
 const emptyForm = { clientName: '', mobileNumber: '', notes: '' };
 
@@ -55,6 +58,7 @@ const WalkInTab = ({ office }) => {
   const [errors, setErrors] = useState({});
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [page, setPage] = useState(0);
+  const [exporting, setExporting] = useState(false);
   const rowsPerPage = 10;
 
   // Chat dialog state
@@ -74,6 +78,18 @@ const WalkInTab = ({ office }) => {
     });
     return () => unsubscribe();
   }, [office]);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const all = await getWalkIns(office);
+      exportWalkInsToExcel(all, `walk_ins_${(office || 'all').replace(/\s+/g, '_').toLowerCase()}`);
+    } catch (e) {
+      setSnackbar({ open: true, message: 'Export failed. Please try again.', severity: 'error' });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const validate = () => {
     const errs = {};
@@ -240,20 +256,38 @@ const WalkInTab = ({ office }) => {
             </Typography>
           </Box>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => { setForm(emptyForm); setErrors({}); setDialogOpen(true); }}
-          sx={{
-            background: 'linear-gradient(135deg, #FF6B00, #FF8C00)',
-            borderRadius: '10px',
-            fontWeight: 600,
-            textTransform: 'none',
-            px: 2.5
-          }}
-        >
-          Add Walk-in
-        </Button>
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Button
+            variant="outlined"
+            startIcon={exporting ? <CircularProgress size={16} /> : <FileDownload />}
+            onClick={handleExport}
+            disabled={exporting}
+            sx={{
+              borderColor: '#8B4513',
+              color: '#8B4513',
+              borderRadius: '10px',
+              fontWeight: 600,
+              textTransform: 'none',
+              px: 2
+            }}
+          >
+            Export All
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => { setForm(emptyForm); setErrors({}); setDialogOpen(true); }}
+            sx={{
+              background: 'linear-gradient(135deg, #FF6B00, #FF8C00)',
+              borderRadius: '10px',
+              fontWeight: 600,
+              textTransform: 'none',
+              px: 2.5
+            }}
+          >
+            Add Walk-in
+          </Button>
+        </Box>
       </Box>
 
       {/* Table */}

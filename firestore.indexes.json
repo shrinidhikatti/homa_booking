@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "walkIns",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "office", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

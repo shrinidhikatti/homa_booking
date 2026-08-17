@@ -7,12 +7,14 @@ import {
   query,
   orderBy,
   where,
+  limit,
   onSnapshot,
   Timestamp
 } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 const COLLECTION = 'walkIns';
+const RECENT_LIMIT = 25;
 
 export const createWalkIn = async (data) => {
   const ref = await addDoc(collection(db, COLLECTION), {
@@ -27,31 +29,25 @@ export const updateWalkInWhatsappStatus = async (id, status) => {
   await updateDoc(doc(db, COLLECTION, id), { whatsappStatus: status });
 };
 
+// Full history for a given office — one-time fetch, used for Excel export
+// (not the live view, so it's fine for this to read the full set on demand)
 export const getWalkIns = async (office) => {
-  const q = query(collection(db, COLLECTION), orderBy('createdAt', 'desc'));
+  const q = office
+    ? query(collection(db, COLLECTION), where('office', '==', office), orderBy('createdAt', 'desc'))
+    : query(collection(db, COLLECTION), orderBy('createdAt', 'desc'));
   const snap = await getDocs(q);
-  const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-  if (!office) return all;
-  if (office === 'Ramdev Galli') {
-    return all.filter(e => e.office === 'Ramdev Galli' || !e.office);
-  }
-  return all.filter(e => e.office === office);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 };
 
-// Real-time listener — returns unsubscribe function
+// Real-time listener — only the most recent RECENT_LIMIT entries for the given
+// office, to keep Firestore reads bounded regardless of how large the
+// collection grows. Older entries are available via Excel export.
 export const subscribeWalkIns = (office, callback) => {
-  const q = query(collection(db, COLLECTION), orderBy('createdAt', 'desc'));
+  const q = office
+    ? query(collection(db, COLLECTION), where('office', '==', office), orderBy('createdAt', 'desc'), limit(RECENT_LIMIT))
+    : query(collection(db, COLLECTION), orderBy('createdAt', 'desc'), limit(RECENT_LIMIT));
   return onSnapshot(q, (snap) => {
-    const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    let filtered;
-    if (!office) {
-      filtered = all;
-    } else if (office === 'Ramdev Galli') {
-      filtered = all.filter(e => e.office === 'Ramdev Galli' || !e.office);
-    } else {
-      filtered = all.filter(e => e.office === office);
-    }
-    callback(filtered);
+    callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
   });
 };
 
