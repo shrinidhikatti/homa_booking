@@ -137,7 +137,7 @@ exports.sendWhatsApp = functions.https.onCall(async (data, context) => {
     } else if (type === 'courier') {
       const name = clientName || 'Customer';
       responseData = await sendTemplate(authKey, whatsappNumber, phone,
-        'courier_dispatched', [name]
+        'courier_dispatched_book_kit', [name]
       );
     } else if (type === 'lms_credentials') {
       const name = clientName || 'Customer';
