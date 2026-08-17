@@ -58,6 +58,23 @@ const ContactButtons = ({ mobile }) => {
   );
 };
 
+const RemarksField = ({ student, onSave }) => {
+  const [value, setValue] = useState(student.notes || '');
+  useEffect(() => { setValue(student.notes || ''); }, [student.notes]);
+  return (
+    <TextField
+      value={value}
+      onChange={e => setValue(e.target.value)}
+      onBlur={() => { if (value !== (student.notes || '')) onSave(student, value); }}
+      placeholder="Add a note…"
+      size="small"
+      multiline
+      maxRows={3}
+      sx={{ minWidth: 170, '& .MuiOutlinedInput-root': { fontSize: '0.75rem', borderRadius: '8px', bgcolor: '#fafafa' } }}
+    />
+  );
+};
+
 const emptyStudent = {
   name: '', mobile: '', course: 'astrology', batch: '',
   joiningDate: '', totalFee: '', status: 'active', notes: '',
@@ -326,6 +343,15 @@ const StudentFeeTab = () => {
     }
   };
 
+  const saveRemarks = async (student, value) => {
+    try {
+      await updateStudent(student.id, { notes: value });
+      setStudents(prev => prev.map(s => s.id === student.id ? { ...s, notes: value } : s));
+    } catch {
+      toast('Failed to save note', 'error');
+    }
+  };
+
   // ── Payment ───────────────────────────────────────────────────────────────
   const openPayDialog = (student) => {
     setPayForm({ ...emptyPayment, paymentDate: new Date().toISOString().split('T')[0] });
@@ -567,7 +593,7 @@ const StudentFeeTab = () => {
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ bgcolor: '#fff8f0' }}>
-                    {['ID', 'Name', 'Mobile', 'Course', 'Batch', 'Total Fee', 'Paid', 'Pending', 'Status', 'Notes', 'Packed', 'Courier', 'LMS Sent', 'Contact', 'Actions'].map(h => (
+                    {['ID', 'Name', 'Mobile', 'Course', 'Batch', 'Total Fee', 'Paid', 'Pending', 'Status', 'Notes Printed', 'Packed', 'Courier', 'LMS Sent', 'Contact', 'Remarks', 'Actions'].map(h => (
                       <TableCell key={h} sx={{ fontWeight: 700, fontSize: '0.75rem', color: '#7c4a03', py: 1.5, whiteSpace: 'nowrap' }}>
                         {h}
                       </TableCell>
@@ -625,6 +651,9 @@ const StudentFeeTab = () => {
                         <ContactButtons mobile={s.mobile} />
                       </TableCell>
                       <TableCell>
+                        <RemarksField student={s} onSave={saveRemarks} />
+                      </TableCell>
+                      <TableCell>
                         <Box sx={{ display: 'flex', gap: 0.3 }}>
                           <Tooltip title="Add Payment">
                             <IconButton size="small" onClick={() => openPayDialog(s)}
@@ -657,7 +686,7 @@ const StudentFeeTab = () => {
                   ))}
                   {filtered.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={15} sx={{ textAlign: 'center', py: 4, color: '#999' }}>
+                      <TableCell colSpan={16} sx={{ textAlign: 'center', py: 4, color: '#999' }}>
                         {search ? 'No students match your search.' : 'No students added yet.'}
                       </TableCell>
                     </TableRow>
@@ -762,7 +791,7 @@ const StudentFeeTab = () => {
                       <Table size="small">
                         <TableHead>
                           <TableRow sx={{ bgcolor: '#fff8f0' }}>
-                            {['ID', 'Name', 'Mobile', 'Total Fee', 'Paid', 'Pending', 'Status', 'Notes', 'Packed', 'Courier', 'LMS Sent', 'Contact'].map(h => (
+                            {['ID', 'Name', 'Mobile', 'Total Fee', 'Paid', 'Pending', 'Status', 'Notes Printed', 'Packed', 'Courier', 'LMS Sent', 'Contact', 'Remarks'].map(h => (
                               <TableCell key={h} sx={{ fontWeight: 700, fontSize: '0.75rem', color: '#7c4a03', py: 1.2, whiteSpace: 'nowrap' }}>
                                 {h}
                               </TableCell>
@@ -809,6 +838,9 @@ const StudentFeeTab = () => {
                               </TableCell>
                               <TableCell>
                                 <ContactButtons mobile={s.mobile} />
+                              </TableCell>
+                              <TableCell>
+                                <RemarksField student={s} onSave={saveRemarks} />
                               </TableCell>
                             </TableRow>
                           ))}
