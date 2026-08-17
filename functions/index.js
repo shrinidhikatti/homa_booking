@@ -151,7 +151,7 @@ exports.sendWhatsApp = functions.https.onCall(async (data, context) => {
     } else if (type === 'lms_credentials') {
       const name = clientName || 'Customer';
       responseData = await sendTemplate(authKey, whatsappNumber, phone,
-        'lms_credentials_sent', [name]
+        'lms_psswd', [name]
       );
     } else if (message) {
       // Free-form text (only works within 24hr session window)
