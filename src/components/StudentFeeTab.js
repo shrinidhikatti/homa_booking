@@ -10,7 +10,7 @@ import {
 import {
   Add, Search, Edit, Delete, Payment, History, Print,
   FileDownload, School, CheckCircle, HourglassEmpty,
-  PersonAdd, Payments, Class, ArrowBack
+  PersonAdd, Payments, Class, ArrowBack, Phone, WhatsApp
 } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
 import {
@@ -36,6 +36,27 @@ const fmtDate = (ts) => {
   return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
 };
 const courseLabel = (v) => COURSES.find(c => c.value === v)?.label || v;
+
+const ContactButtons = ({ mobile }) => {
+  if (!mobile) return null;
+  const cleanMobile = String(mobile).replace(/\D/g, '');
+  return (
+    <Box sx={{ display: 'flex', gap: 0.75 }}>
+      <Tooltip title="Call">
+        <IconButton size="small" component="a" href={`tel:${cleanMobile}`}
+          sx={{ bgcolor: '#E3F2FD', color: '#1565C0', borderRadius: '8px', '&:hover': { bgcolor: '#BBDEFB' } }}>
+          <Phone sx={{ fontSize: 16 }} />
+        </IconButton>
+      </Tooltip>
+      <Tooltip title="WhatsApp">
+        <IconButton size="small" component="a" href={`https://wa.me/91${cleanMobile}`} target="_blank" rel="noopener noreferrer"
+          sx={{ bgcolor: '#E8F5E9', color: '#25D366', borderRadius: '8px', '&:hover': { bgcolor: '#C8E6C9' } }}>
+          <WhatsApp sx={{ fontSize: 16 }} />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+};
 
 const emptyStudent = {
   name: '', mobile: '', course: 'astrology', batch: '',
@@ -546,7 +567,7 @@ const StudentFeeTab = () => {
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ bgcolor: '#fff8f0' }}>
-                    {['ID', 'Name', 'Mobile', 'Course', 'Batch', 'Total Fee', 'Paid', 'Pending', 'Status', 'Notes', 'Packed', 'Courier', 'LMS Sent', 'Actions'].map(h => (
+                    {['ID', 'Name', 'Mobile', 'Course', 'Batch', 'Total Fee', 'Paid', 'Pending', 'Status', 'Notes', 'Packed', 'Courier', 'LMS Sent', 'Contact', 'Actions'].map(h => (
                       <TableCell key={h} sx={{ fontWeight: 700, fontSize: '0.75rem', color: '#7c4a03', py: 1.5, whiteSpace: 'nowrap' }}>
                         {h}
                       </TableCell>
@@ -601,6 +622,9 @@ const StudentFeeTab = () => {
                         </Tooltip>
                       </TableCell>
                       <TableCell>
+                        <ContactButtons mobile={s.mobile} />
+                      </TableCell>
+                      <TableCell>
                         <Box sx={{ display: 'flex', gap: 0.3 }}>
                           <Tooltip title="Add Payment">
                             <IconButton size="small" onClick={() => openPayDialog(s)}
@@ -633,7 +657,7 @@ const StudentFeeTab = () => {
                   ))}
                   {filtered.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={14} sx={{ textAlign: 'center', py: 4, color: '#999' }}>
+                      <TableCell colSpan={15} sx={{ textAlign: 'center', py: 4, color: '#999' }}>
                         {search ? 'No students match your search.' : 'No students added yet.'}
                       </TableCell>
                     </TableRow>
@@ -738,7 +762,7 @@ const StudentFeeTab = () => {
                       <Table size="small">
                         <TableHead>
                           <TableRow sx={{ bgcolor: '#fff8f0' }}>
-                            {['ID', 'Name', 'Mobile', 'Total Fee', 'Paid', 'Pending', 'Status', 'Notes', 'Packed', 'Courier', 'LMS Sent'].map(h => (
+                            {['ID', 'Name', 'Mobile', 'Total Fee', 'Paid', 'Pending', 'Status', 'Notes', 'Packed', 'Courier', 'LMS Sent', 'Contact'].map(h => (
                               <TableCell key={h} sx={{ fontWeight: 700, fontSize: '0.75rem', color: '#7c4a03', py: 1.2, whiteSpace: 'nowrap' }}>
                                 {h}
                               </TableCell>
@@ -782,6 +806,9 @@ const StudentFeeTab = () => {
                                     onChange={() => toggleFulfillment(s, 'lmsCredentialsSent')}
                                     sx={{ color: '#bbb', '&.Mui-checked': { color: '#1565C0' } }} />
                                 </Tooltip>
+                              </TableCell>
+                              <TableCell>
+                                <ContactButtons mobile={s.mobile} />
                               </TableCell>
                             </TableRow>
                           ))}
